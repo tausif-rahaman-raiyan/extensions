@@ -42,7 +42,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNotify }) => {
               <Moon className="w-12 h-12 text-emerald-400 hidden group-has-[img[style*='display: none']]:block" />
             </div>
             <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-emerald-500 text-[10px] font-bold text-slate-950 uppercase tracking-widest shadow">
-              v2.2.21
+              v2.2.23
             </div>
           </div>
 
@@ -56,7 +56,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNotify }) => {
               </span>
             </div>
             <p className="text-sm text-[var(--color-text-muted)] max-w-xl leading-relaxed">
-              Precision Islamic prayer timetable, Tahajjud guidance, Quran reading stopwatch, and verified Bengali wisdom quotes designed for Chrome and modern web browsers.
+              Precision Islamic prayer timetable, start-to-limit waqt windows, manual clock overrides, in-page 5-min Focus Mode with digital Tasbih, and 65+ verified Bengali wisdom quotes.
             </p>
           </div>
 
@@ -64,17 +64,17 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNotify }) => {
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               {downloading ? 'Preparing ZIP...' : 'Download Extension (.zip)'}
             </button>
             <a
-              href="/Prayer-Focus-v2.2.21-Fixed.zip"
-              download="Prayer-Focus-v2.2.21-Fixed.zip"
+              href="/Prayer-Focus-v2.2.23-Fixed.zip"
+              download="Prayer-Focus-v2.2.23-Fixed.zip"
               className="px-4 py-2.5 rounded-xl border border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 font-medium text-xs transition-colors flex items-center justify-center gap-1.5"
             >
-              <Download className="w-3.5 h-3.5" /> Direct ZIP Link
+              <Download className="w-3.5 h-3.5" /> Direct ZIP Link (v2.2.23)
             </a>
           </div>
         </div>

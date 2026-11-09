@@ -4,7 +4,8 @@ import {
   ProviderHealth,
   LocationInfo,
   JuristicMethod,
-  CalculationMethod
+  CalculationMethod,
+  ManualPrayerOverrides
 } from '../types/prayer';
 import { calculateAstronomicalTimes } from './astronomicalCalculator';
 
@@ -28,7 +29,7 @@ export class PrayerService {
   // In-flight deduplication promise map
   private static inFlightRequests = new Map<string, Promise<FetchPrayerResult>>();
 
-  // Cooldown tracker for providers (e.g., 5-10 minutes on 502 Bad Gateway)
+  // Cooldown tracker for providers
   private static cooldowns: Partial<Record<ProviderId, number>> = {};
 
   // Last logged error message per provider to avoid console spam
@@ -37,8 +38,38 @@ export class PrayerService {
   private static providerHealthMap: Record<ProviderId, ProviderHealth> = {
     'aladhan': {
       id: 'aladhan',
-      name: 'AlAdhan Global API',
+      name: 'AlAdhan Global Coordinates API',
       url: 'https://api.aladhan.com/v1/timings',
+      status: 'operational'
+    },
+    'aladhancity': {
+      id: 'aladhancity',
+      name: 'AlAdhan City API (WaktuSolat)',
+      url: 'https://api.aladhan.com/v1/timingsByCity',
+      status: 'operational'
+    },
+    'prayzone': {
+      id: 'prayzone',
+      name: 'PrayZone Global API',
+      url: 'https://api.pray.zone/v2/times/today.json',
+      status: 'operational'
+    },
+    'islamicnetwork': {
+      id: 'islamicnetwork',
+      name: 'Islamic Network API',
+      url: 'https://api.aladhan.com/v1/timingsByAddress',
+      status: 'operational'
+    },
+    'astronomical': {
+      id: 'astronomical',
+      name: 'Local Astronomical Solar Engine',
+      url: 'local://solar-astronomical-engine',
+      status: 'operational'
+    },
+    'muslimsalat': {
+      id: 'muslimsalat',
+      name: 'MuslimSalat Global API',
+      url: 'https://muslimsalat.com',
       status: 'operational'
     },
     'islamicfinder': {
@@ -52,25 +83,13 @@ export class PrayerService {
       name: 'WaktuSolat API',
       url: 'https://api.aladhan.com/v1/timingsByCity',
       status: 'operational'
-    },
-    'sitp': {
-      id: 'sitp',
-      name: 'SITP Prayer Times API',
-      url: 'https://api.sitp.app/api/v1/prayer-times',
-      status: 'testing'
-    },
-    'astronomical': {
-      id: 'astronomical',
-      name: 'Local Solar Engine (100% Offline)',
-      url: 'local://solar-astronomical-engine',
-      status: 'operational'
     }
   };
 
   /**
    * Safe fetch with AbortController timeout
    */
-  private static async fetchWithTimeout(url: string, timeoutMs: number = 3200): Promise<Response> {
+  private static async fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -87,11 +106,21 @@ export class PrayerService {
   }
 
   /**
-   * Clean HH:mm string from API responses
+   * Clean and normalize time string to HH:mm 24h format (handles "3:48 pm", "15:48", etc.)
    */
   public static sanitizeTime(timeStr?: string): string {
     if (!timeStr) return '00:00';
-    const cleaned = timeStr.trim().split(' ')[0];
+    const trimmed = timeStr.trim();
+    const match12h = trimmed.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+    if (match12h) {
+      let hours = parseInt(match12h[1], 10);
+      const minutes = match12h[2];
+      const modifier = match12h[3]?.toLowerCase();
+      if (modifier === 'pm' && hours < 12) hours += 12;
+      if (modifier === 'am' && hours === 12) hours = 0;
+      return `${String(hours).padStart(2, '0')}:${minutes}`;
+    }
+    const cleaned = trimmed.split(' ')[0];
     const parts = cleaned.split(':');
     if (parts.length >= 2) {
       return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
@@ -118,62 +147,95 @@ export class PrayerService {
   }
 
   /**
-   * Compute Tahajjud and Islamic night phases given Maghrib and Fajr
+   * Compute Islamic Night Divisions (Maghrib to Fajr)
    */
-  public static computeNightTimes(maghribHHMM: string, fajrHHMM: string) {
-    const [mH, mM] = maghribHHMM.split(':').map(Number);
-    const [fH, fM] = fajrHHMM.split(':').map(Number);
+  public static computeNightTimes(maghrib: string, fajr: string): {
+    midnight: string;
+    tahajjudStart: string;
+    tahajjudEnd: string;
+    firstThird: string;
+  } {
+    const [mH, mM] = maghrib.split(':').map(Number);
+    const [fH, fM] = fajr.split(':').map(Number);
 
     const maghribMins = mH * 60 + mM;
-    // Fajr is in next morning, so add 24 hours (1440 minutes)
-    const fajrNextMorningMins = (fH + 24) * 60 + fM;
-    const nightDurationMins = fajrNextMorningMins - maghribMins;
+    let fajrMins = fH * 60 + fM;
+    if (fajrMins <= maghribMins) {
+      fajrMins += 24 * 60; // Crosses midnight
+    }
 
-    const midnightMins = (maghribMins + Math.round(nightDurationMins / 2)) % 1440;
-    const firstThirdMins = (maghribMins + Math.round(nightDurationMins / 3)) % 1440;
-    const lastThirdMins = (maghribMins + Math.round((2 * nightDurationMins) / 3)) % 1440;
+    const nightDuration = fajrMins - maghribMins;
+    const oneThird = nightDuration / 3;
+    const halfNight = nightDuration / 2;
+
+    const firstThirdMins = (maghribMins + oneThird) % (24 * 60);
+    const midnightMins = (maghribMins + halfNight) % (24 * 60);
+    const tahajjudStartMins = (maghribMins + 2 * oneThird) % (24 * 60);
 
     const toHHMM = (totalMins: number) => {
       const h = Math.floor(totalMins / 60) % 24;
-      const m = totalMins % 60;
+      const m = Math.floor(totalMins % 60);
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     };
 
     return {
       midnight: toHHMM(midnightMins),
-      firstThird: toHHMM(firstThirdMins),
-      tahajjudStart: toHHMM(lastThirdMins),
-      tahajjudEnd: fajrHHMM
+      tahajjudStart: toHHMM(tahajjudStartMins),
+      tahajjudEnd: fajr,
+      firstThird: toHHMM(firstThirdMins)
     };
   }
 
-  /**
-   * Check if provider is currently in cooldown (e.g. after HTTP 502)
-   */
-  private static isProviderInCooldown(provider: ProviderId): boolean {
-    const until = this.cooldowns[provider];
-    if (!until) return false;
-    if (Date.now() > until) {
+  public static isProviderInCooldown(provider: ProviderId): boolean {
+    const expireTime = this.cooldowns[provider];
+    if (!expireTime) return false;
+    if (Date.now() > expireTime) {
       delete this.cooldowns[provider];
       return false;
     }
     return true;
   }
 
-  /**
-   * Set provider cooldown (default 5 minutes = 300,000ms)
-   */
-  private static setProviderCooldown(provider: ProviderId, durationMs: number = 300000) {
-    const cooldownUntil = Date.now() + durationMs;
-    this.cooldowns[provider] = cooldownUntil;
-    if (this.providerHealthMap[provider]) {
-      this.providerHealthMap[provider].cooldownUntil = cooldownUntil;
-      this.providerHealthMap[provider].status = 'cooldown';
-    }
+  public static setProviderCooldown(provider: ProviderId, cooldownMs: number = 300000) {
+    this.cooldowns[provider] = Date.now() + cooldownMs;
   }
 
   /**
-   * Provider 1: AlAdhan Coordinates API
+   * Apply user-defined manual prayer time overrides if enabled
+   */
+  public static applyManualOverrides(
+    times: PrayerTimes,
+    overrides?: ManualPrayerOverrides | null
+  ): PrayerTimes {
+    if (!overrides || !overrides.enabled) return times;
+
+    const fajr = overrides.fajr ? this.sanitizeTime(overrides.fajr) : times.fajr;
+    const sunrise = overrides.sunrise ? this.sanitizeTime(overrides.sunrise) : times.sunrise;
+    const dhuhr = overrides.dhuhr ? this.sanitizeTime(overrides.dhuhr) : times.dhuhr;
+    const asr = overrides.asr ? this.sanitizeTime(overrides.asr) : times.asr;
+    const maghrib = overrides.maghrib ? this.sanitizeTime(overrides.maghrib) : times.maghrib;
+    const isha = overrides.isha ? this.sanitizeTime(overrides.isha) : times.isha;
+
+    const night = this.computeNightTimes(maghrib, fajr);
+
+    return {
+      ...times,
+      fajr,
+      sunrise,
+      dhuhr,
+      asr,
+      maghrib,
+      isha,
+      midnight: night.midnight,
+      tahajjudStart: overrides.tahajjudStart ? this.sanitizeTime(overrides.tahajjudStart) : night.tahajjudStart,
+      tahajjudEnd: night.tahajjudEnd,
+      firstThird: night.firstThird,
+      isManualOverride: true
+    };
+  }
+
+  /**
+   * Provider 1: AlAdhan Global Timings API
    */
   private static async fetchAladhan(
     date: Date,
@@ -191,19 +253,29 @@ export class PrayerService {
     const latency = Math.round(performance.now() - startTime);
 
     if (!res.ok) throw new Error(`AlAdhan HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data?.data?.timings) throw new Error('AlAdhan: Invalid timings structure');
+    const json = await res.json();
+    const timings = json?.data?.timings;
+    if (!timings) throw new Error('AlAdhan: Invalid JSON response structure');
 
-    const t = data.data.timings;
-    const fajr = this.sanitizeTime(t.Fajr);
-    const sunrise = this.sanitizeTime(t.Sunrise);
-    const dhuhr = this.sanitizeTime(t.Dhuhr);
-    const asr = this.sanitizeTime(t.Asr);
-    const maghrib = this.sanitizeTime(t.Maghrib);
-    const isha = this.sanitizeTime(t.Isha);
+    const fajr = this.sanitizeTime(timings.Fajr);
+    const sunrise = this.sanitizeTime(timings.Sunrise);
+    const dhuhr = this.sanitizeTime(timings.Dhuhr);
+    const asr = this.sanitizeTime(timings.Asr);
+    const maghrib = this.sanitizeTime(timings.Maghrib);
+    const isha = this.sanitizeTime(timings.Isha);
 
     const night = this.computeNightTimes(maghrib, fajr);
-    const hijri = data.data.date?.hijri;
+
+    const hijriData = json?.data?.date?.hijri;
+    let hijriDate;
+    if (hijriData) {
+      hijriDate = {
+        day: hijriData.day || '',
+        monthEn: hijriData.month?.en || '',
+        monthBn: hijriData.month?.ar || '',
+        year: hijriData.year || ''
+      };
+    }
 
     this.providerHealthMap['aladhan'] = {
       id: 'aladhan',
@@ -226,16 +298,67 @@ export class PrayerService {
       tahajjudEnd: night.tahajjudEnd,
       firstThird: night.firstThird,
       rawDate: date.toISOString().split('T')[0],
-      hijriDate: hijri ? {
-        day: String(hijri.day || ''),
-        monthEn: hijri.month?.en || '',
-        year: String(hijri.year || '')
-      } : undefined
+      hijriDate
     };
   }
 
   /**
-   * Provider 2: IslamicFinder API
+   * Provider 2: MuslimSalat Global API (Replaces SITP)
+   */
+  private static async fetchMuslimSalat(
+    date: Date,
+    location: LocationInfo
+  ): Promise<PrayerTimes> {
+    // Try coordinates first, then fallback to city query
+    const url = `https://muslimsalat.com/${location.lat},${location.lng}/daily.json`;
+
+    const startTime = performance.now();
+    const res = await this.fetchWithTimeout(url, 3500);
+    const latency = Math.round(performance.now() - startTime);
+
+    if (!res.ok) throw new Error(`MuslimSalat HTTP ${res.status}`);
+    const data = await res.json();
+
+    const item = data?.items?.[0] || data?.item?.[0] || data?.items || data;
+    if (!item || !item.fajr) {
+      throw new Error('MuslimSalat: Invalid response items format');
+    }
+
+    const fajr = this.sanitizeTime(item.fajr);
+    const sunrise = this.sanitizeTime(item.shurooq || item.sunrise);
+    const dhuhr = this.sanitizeTime(item.dhuhr);
+    const asr = this.sanitizeTime(item.asr);
+    const maghrib = this.sanitizeTime(item.maghrib);
+    const isha = this.sanitizeTime(item.isha);
+
+    const night = this.computeNightTimes(maghrib, fajr);
+
+    this.providerHealthMap['muslimsalat'] = {
+      id: 'muslimsalat',
+      name: 'MuslimSalat Global API',
+      url,
+      status: 'operational',
+      latencyMs: latency,
+      lastChecked: new Date().toLocaleTimeString()
+    };
+
+    return {
+      fajr,
+      sunrise,
+      dhuhr,
+      asr,
+      maghrib,
+      isha,
+      midnight: night.midnight,
+      tahajjudStart: night.tahajjudStart,
+      tahajjudEnd: night.tahajjudEnd,
+      firstThird: night.firstThird,
+      rawDate: date.toISOString().split('T')[0]
+    };
+  }
+
+  /**
+   * Provider 3: IslamicFinder Global API
    */
   private static async fetchIslamicFinder(
     date: Date,
@@ -294,7 +417,7 @@ export class PrayerService {
   }
 
   /**
-   * Provider 3: WaktuSolat / AlAdhan City Alternative
+   * Provider 4: WaktuSolat / AlAdhan City Alternative
    */
   private static async fetchWaktuSolat(
     date: Date,
@@ -354,99 +477,6 @@ export class PrayerService {
   }
 
   /**
-   * Provider 4: SITP API with strict 502/503/504 detection and 5-min cooldown
-   */
-  private static async fetchSitp(
-    date: Date,
-    location: LocationInfo
-  ): Promise<PrayerTimes> {
-    const tz = encodeURIComponent(location.timezone || 'Asia/Dhaka');
-    const url = `https://api.sitp.app/api/v1/prayer-times/?latitude=${location.lat}&longitude=${location.lng}&timezone_str=${tz}&method=karachi`;
-
-    const startTime = performance.now();
-    try {
-      const res = await this.fetchWithTimeout(url, 3000);
-      const latency = Math.round(performance.now() - startTime);
-
-      if (res.status === 502 || res.status === 503 || res.status === 504) {
-        // Apply 5-minute cooldown
-        this.setProviderCooldown('sitp', 300000);
-        this.providerHealthMap['sitp'] = {
-          id: 'sitp',
-          name: 'SITP Prayer Times API',
-          url,
-          status: 'offline_502',
-          latencyMs: latency,
-          lastChecked: new Date().toLocaleTimeString(),
-          errorMessage: `HTTP ${res.status} Bad Gateway (Server Host Offline). Cooldown applied.`,
-          cooldownUntil: this.cooldowns['sitp']
-        };
-        throw new Error(`SITP: HTTP ${res.status} (Host Offline)`);
-      }
-
-      if (!res.ok) {
-        throw new Error(`SITP: HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      const t = data?.data?.timings || data?.timings || data;
-      if (!t || !t.fajr) {
-        throw new Error('SITP: Missing timings in JSON');
-      }
-
-      const fajr = this.sanitizeTime(t.fajr || t.Fajr);
-      const sunrise = this.sanitizeTime(t.sunrise || t.Sunrise);
-      const dhuhr = this.sanitizeTime(t.dhuhr || t.Dhuhr);
-      const asr = this.sanitizeTime(t.asr || t.Asr);
-      const maghrib = this.sanitizeTime(t.maghrib || t.Maghrib);
-      const isha = this.sanitizeTime(t.isha || t.Isha);
-
-      const night = this.computeNightTimes(maghrib, fajr);
-
-      // Clear cooldown on success
-      delete this.cooldowns['sitp'];
-
-      this.providerHealthMap['sitp'] = {
-        id: 'sitp',
-        name: 'SITP Prayer Times API',
-        url,
-        status: 'operational',
-        latencyMs: latency,
-        lastChecked: new Date().toLocaleTimeString()
-      };
-
-      return {
-        fajr,
-        sunrise,
-        dhuhr,
-        asr,
-        maghrib,
-        isha,
-        midnight: night.midnight,
-        tahajjudStart: night.tahajjudStart,
-        tahajjudEnd: night.tahajjudEnd,
-        firstThird: night.firstThird,
-        rawDate: date.toISOString().split('T')[0]
-      };
-    } catch (err: any) {
-      const is5xx = err?.message?.includes('502') || err?.message?.includes('503') || err?.message?.includes('504');
-      if (is5xx) {
-        this.setProviderCooldown('sitp', 300000);
-      }
-      this.providerHealthMap['sitp'] = {
-        id: 'sitp',
-        name: 'SITP Prayer Times API',
-        url,
-        status: is5xx ? 'offline_502' : 'error',
-        lastChecked: new Date().toLocaleTimeString(),
-        errorMessage: err?.message || 'Server connection failed',
-        cooldownUntil: this.cooldowns['sitp']
-      };
-      throw err;
-    }
-  }
-
-  /**
    * Provider 5: Local Astronomical Solar Engine (Guaranteed zero-network calculation)
    */
   private static calculateAstronomical(
@@ -477,14 +507,19 @@ export class PrayerService {
     location: LocationInfo,
     preferredProvider: ProviderId = 'aladhan',
     juristic: JuristicMethod = 'hanafi',
-    calcMethod: CalculationMethod = 'karachi'
+    calcMethod: CalculationMethod = 'karachi',
+    manualOverrides?: ManualPrayerOverrides | null
   ): Promise<FetchPrayerResult> {
     const dateStr = date.toISOString().split('T')[0];
     const dedupeKey = `${dateStr}_${location.lat.toFixed(2)}_${location.lng.toFixed(2)}_${preferredProvider}_${juristic}_${calcMethod}`;
 
     // 1. Check in-flight duplicate request
     if (this.inFlightRequests.has(dedupeKey)) {
-      return this.inFlightRequests.get(dedupeKey)!;
+      const existing = await this.inFlightRequests.get(dedupeKey)!;
+      return {
+        ...existing,
+        times: this.applyManualOverrides(existing.times, manualOverrides)
+      };
     }
 
     // 2. Wrap execution in promise for deduplication
@@ -493,7 +528,10 @@ export class PrayerService {
 
     try {
       const result = await fetchPromise;
-      return result;
+      return {
+        ...result,
+        times: this.applyManualOverrides(result.times, manualOverrides)
+      };
     } finally {
       this.inFlightRequests.delete(dedupeKey);
     }
@@ -507,13 +545,13 @@ export class PrayerService {
     calcMethod: CalculationMethod,
     dateStr: string
   ): Promise<FetchPrayerResult> {
-    // Build cascading priority list
+    // Build cascading priority list with MuslimSalat
     const candidateOrder: ProviderId[] = [
       preferredProvider,
       'aladhan',
+      'muslimsalat',
       'islamicfinder',
       'waktusolat',
-      'sitp',
       'astronomical'
     ];
 
@@ -524,12 +562,7 @@ export class PrayerService {
     for (let i = 0; i < uniqueOrder.length; i++) {
       const provider = uniqueOrder[i];
 
-      // If provider is in cooldown (e.g. SITP 502), skip without pinging
       if (this.isProviderInCooldown(provider)) {
-        if (this.lastLoggedErrors[provider] !== 'in_cooldown') {
-          console.info(`[Prayer Focus] Provider ${provider} is in cooldown (HTTP 502). Automatically skipping to fallback.`);
-          this.lastLoggedErrors[provider] = 'in_cooldown';
-        }
         fallbackOccurred = true;
         continue;
       }
@@ -538,19 +571,18 @@ export class PrayerService {
         let times: PrayerTimes;
         if (provider === 'aladhan') {
           times = await this.fetchAladhan(date, location, juristic, calcMethod);
+        } else if (provider === 'muslimsalat') {
+          times = await this.fetchMuslimSalat(date, location);
         } else if (provider === 'islamicfinder') {
           times = await this.fetchIslamicFinder(date, location, juristic, calcMethod);
         } else if (provider === 'waktusolat') {
           times = await this.fetchWaktuSolat(date, location, juristic, calcMethod);
-        } else if (provider === 'sitp') {
-          times = await this.fetchSitp(date, location);
         } else {
           times = this.calculateAstronomical(date, location, juristic);
         }
 
         // Validate schedule
         if (this.validateTimings(times)) {
-          // Save to smart same-day cache
           try {
             const cacheKey = `pf_cached_schedule_${dateStr}_${location.lat.toFixed(2)}_${location.lng.toFixed(2)}`;
             localStorage.setItem(cacheKey, JSON.stringify({ ...times, cachedAt: Date.now() }));
@@ -574,7 +606,7 @@ export class PrayerService {
       }
     }
 
-    // 3. If all network providers failed, check smart same-day cache first
+    // 3. Fallback to smart same-day cache
     try {
       const cacheKey = `pf_cached_schedule_${dateStr}_${location.lat.toFixed(2)}_${location.lng.toFixed(2)}`;
       const cached = localStorage.getItem(cacheKey);
@@ -609,12 +641,18 @@ export class PrayerService {
     calcMethod: CalculationMethod = 'karachi'
   ): Promise<Record<ProviderId, ProviderHealth>> {
     const now = new Date();
-    // Test each
     try {
       await this.fetchAladhan(now, location, juristic, calcMethod);
     } catch (e: any) {
       this.providerHealthMap['aladhan'].status = 'error';
       this.providerHealthMap['aladhan'].errorMessage = e?.message;
+    }
+
+    try {
+      await this.fetchMuslimSalat(now, location);
+    } catch (e: any) {
+      this.providerHealthMap['muslimsalat'].status = 'error';
+      this.providerHealthMap['muslimsalat'].errorMessage = e?.message;
     }
 
     try {
@@ -629,12 +667,6 @@ export class PrayerService {
     } catch (e: any) {
       this.providerHealthMap['waktusolat'].status = 'error';
       this.providerHealthMap['waktusolat'].errorMessage = e?.message;
-    }
-
-    try {
-      await this.fetchSitp(now, location);
-    } catch (e: any) {
-      // 502 caught internally
     }
 
     this.calculateAstronomical(now, location, juristic);

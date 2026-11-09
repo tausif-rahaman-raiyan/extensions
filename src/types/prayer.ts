@@ -1,4 +1,12 @@
-export type ProviderId = 'aladhan' | 'islamicfinder' | 'waktusolat' | 'sitp' | 'astronomical';
+export type ProviderId =
+  | 'aladhan'
+  | 'aladhancity'
+  | 'prayzone'
+  | 'islamicnetwork'
+  | 'astronomical'
+  | 'muslimsalat'
+  | 'islamicfinder'
+  | 'waktusolat';
 
 export type NavSection =
   | 'overview'
@@ -13,6 +21,21 @@ export type NavSection =
   | 'about';
 
 export type ThemeMode = 'dark' | 'light' | 'system';
+
+export type WaqtStatus = 'active' | 'upcoming' | 'finished' | 'missed';
+
+export interface WaqtWindow {
+  key: string;
+  nameEn: string;
+  nameBn: string;
+  arabic: string;
+  startTime: string;      // HH:mm 24h
+  endTime: string;        // HH:mm 24h
+  isCompleted: boolean;
+  status: WaqtStatus;
+  statusLabel: string;
+  isPrayer: boolean;
+}
 
 export interface PrayerTimes {
   fajr: string;          // HH:mm 24h
@@ -34,6 +57,18 @@ export interface PrayerTimes {
   };
   isCached?: boolean;
   cachedAt?: number;
+  isManualOverride?: boolean;
+}
+
+export interface ManualPrayerOverrides {
+  enabled: boolean;
+  fajr: string;
+  sunrise: string;
+  dhuhr: string;
+  asr: string;
+  maghrib: string;
+  isha: string;
+  tahajjudStart?: string;
 }
 
 export interface ProviderHealth {
@@ -90,7 +125,14 @@ export interface QuranSession {
 }
 
 export interface NotificationSettings {
-  enabled: boolean;
-  soundEnabled: boolean;
-  reminderMinutesBefore: number;
+  fajr?: boolean;
+  dhuhr?: boolean;
+  asr?: boolean;
+  maghrib?: boolean;
+  isha?: boolean;
+  tahajjud?: boolean;
+  advanceMinutes?: number;
+  soundEnabled?: boolean;
+  enabled?: boolean;
+  reminderMinutesBefore?: number;
 }

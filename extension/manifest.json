@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Prayer Focus",
-  "version": "2.2.21",
-  "description": "Accurate prayer timings, Tahajjud calculation, multi-provider fallback, and hourly Bengali Islamic wisdom.",
+  "version": "2.2.23",
+  "description": "Accurate prayer timings, start-to-limit waqt windows, manual clock overrides, and hourly Bengali Islamic wisdom.",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -11,18 +11,28 @@
       "128": "icons/icon128.png"
     }
   },
+  "options_page": "dashboard.html",
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "activeTab",
+    "tabs"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
   ],
   "host_permissions": [
     "https://api.aladhan.com/*",
-    "https://www.islamicfinder.us/*",
-    "https://api.sitp.app/*"
+    "https://api.pray.zone/*"
   ],
   "icons": {
     "16": "icons/icon16.png",

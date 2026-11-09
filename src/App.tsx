@@ -14,7 +14,8 @@ import {
   CalculationMethod,
   ThemeMode,
   NotificationSettings,
-  NavSection
+  NavSection,
+  ManualPrayerOverrides
 } from './types/prayer';
 import { DEFAULT_LOCATION } from './data/locations';
 import { getHourlyQuote, ISLAMIC_QUOTES } from './data/quotes';
@@ -32,7 +33,33 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   // 2. Active Section Navigation
-  const [activeSection, setActiveSection] = useState<NavSection>('overview');
+  const [activeSection, setActiveSection] = useState<NavSection>(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const h = window.location.hash.replace('#', '') as NavSection;
+      if (['overview', 'times', 'tahajjud', 'tracker', 'quotes', 'quran', 'location', 'providers', 'settings', 'about'].includes(h)) {
+        return h;
+      }
+    }
+    return 'overview';
+  });
+
+  // Manual Prayer Overrides state (persisted)
+  const [manualOverrides, setManualOverrides] = useState<ManualPrayerOverrides>(() => {
+    try {
+      const saved = localStorage.getItem('prayer_focus_manual_overrides');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      enabled: false,
+      fajr: '',
+      sunrise: '',
+      dhuhr: '',
+      asr: '',
+      maghrib: '',
+      isha: '',
+      tahajjudStart: ''
+    };
+  });
 
   // 3. Location state (persisted)
   const [location, setLocation] = useState<LocationInfo>(() => {
@@ -45,7 +72,12 @@ export default function App() {
 
   // 4. Provider settings
   const [preferredProvider, setPreferredProvider] = useState<ProviderId>(() => {
-    return (localStorage.getItem('prayer_focus_provider') as ProviderId) || 'aladhan';
+    const saved = localStorage.getItem('prayer_focus_provider') as string;
+    if (saved === 'sitp') return 'muslimsalat';
+    if (saved && ['aladhan', 'muslimsalat', 'islamicfinder', 'waktusolat', 'astronomical'].includes(saved)) {
+      return saved as ProviderId;
+    }
+    return 'aladhan';
   });
 
   const [juristic, setJuristic] = useState<JuristicMethod>(() => {
@@ -192,7 +224,8 @@ export default function App() {
         location,
         preferredProvider,
         juristic,
-        calcMethod
+        calcMethod,
+        manualOverrides
       );
       setTimes(result.times);
       setUsedProvider(result.usedProvider);
@@ -206,14 +239,22 @@ export default function App() {
         6,
         juristic
       );
-      setTimes(fallbackTimes);
+      const finalTimes = PrayerService.applyManualOverrides(fallbackTimes, manualOverrides);
+      setTimes(finalTimes);
       setUsedProvider('astronomical');
     }
-  }, [location, preferredProvider, juristic, calcMethod]);
+  }, [location, preferredProvider, juristic, calcMethod, manualOverrides]);
 
   useEffect(() => {
     loadPrayerTimes();
   }, [loadPrayerTimes]);
+
+  const handleSaveManualOverrides = (updated: ManualPrayerOverrides) => {
+    setManualOverrides(updated);
+    try {
+      localStorage.setItem('prayer_focus_manual_overrides', JSON.stringify(updated));
+    } catch (e) {}
+  };
 
   // Persist settings
   useEffect(() => {
@@ -321,6 +362,8 @@ export default function App() {
           onChangeNotifications={setNotifications}
           activeSection={activeSection}
           onSelectSection={setActiveSection}
+          manualOverrides={manualOverrides}
+          onSaveManualOverrides={handleSaveManualOverrides}
         />
       ) : (
         <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center p-4">
@@ -347,6 +390,10 @@ export default function App() {
               isBookmarked={bookmarkedQuotes.includes(hourlyQuote.id)}
               onToggleBookmark={handleToggleBookmark}
               onOpenFullDashboard={() => setViewMode('full')}
+              onOpenSettings={() => {
+                setViewMode('full');
+                setActiveSection('settings');
+              }}
               onOpenLocationModal={() => setLocationModalOpen(true)}
               onOpenProviderModal={() => setProviderModalOpen(true)}
               currentTime={currentTime}

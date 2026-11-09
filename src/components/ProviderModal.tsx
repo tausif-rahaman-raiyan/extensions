@@ -103,19 +103,19 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({
       desc: 'Industry standard with 99.99% uptime. Native Karachi 18° calculation and Hanafi/Shafi school options.'
     },
     {
-      id: 'islamicfinder',
-      title: '2. IslamicFinder Global API',
-      desc: 'High-availability worldwide prayer API with custom coordinates and timezone support.'
+      id: 'aladhancity',
+      title: '2. AlAdhan City API (WaktuSolat)',
+      desc: 'City-level fallback endpoint providing instant recovery if coordinate lookups fail.'
     },
     {
-      id: 'waktusolat',
-      title: '3. WaktuSolat / City Backup API',
-      desc: 'City and regional fallback channel ensuring uninterrupted prayer schedules.'
+      id: 'prayzone',
+      title: '3. PrayZone Global API',
+      desc: 'High-availability worldwide prayer API with custom city and regional support.'
     },
     {
-      id: 'sitp',
-      title: '4. SITP Prayer Times API (api.sitp.app)',
-      desc: 'Protected with 3-second timeout and 5-minute cooldown upon detecting Cloudflare 502 Bad Gateway.'
+      id: 'islamicnetwork',
+      title: '4. Islamic Network API',
+      desc: 'Address and region query engine for global prayer times.'
     },
     {
       id: 'astronomical',

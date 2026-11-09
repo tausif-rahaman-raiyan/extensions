@@ -1,0 +1,1195 @@
+# MASTER AI PROMPT — PRAYER FOCUS COMPLETE UI/UX REDESIGN
+
+## PROJECT: PRAYER FOCUS — PREMIUM ISLAMIC PRODUCTIVITY CHROME EXTENSION
+
+You are a senior UI/UX designer, frontend architect, and experienced Chrome Extension developer.
+
+Your task is to completely redesign the user interface and user experience of the existing **Prayer Focus Chrome Extension**, transforming it into a polished, premium, modern Islamic productivity application.
+
+You will receive the complete existing project as a ZIP file.
+
+Your job is to inspect the entire project, understand its architecture, preserve all existing functionality, and implement a comprehensive visual and structural UI/UX upgrade across every part of the extension.
+
+This is NOT a request to build a new extension from scratch.
+
+This is a complete redesign of the existing application while maintaining its current functionality, data, architecture, and compatibility.
+
+---
+
+# 1. MOST IMPORTANT RULES — READ BEFORE CODING
+
+### Preserve Existing Functionality
+
+Do not remove, disable, replace, or break any existing feature.
+
+The existing extension already contains important functionality, including:
+
+- Prayer time fetching and calculation.
+- Five daily prayer schedules.
+- Next prayer countdown.
+- Tahajjud timing and countdown.
+- Prayer tracking.
+- Monthly prayer calendar.
+- Daily Islamic quotes.
+- English and Bengali language support.
+- Location configuration.
+- Prayer calculation methods.
+- Prayer time providers.
+- Notification settings.
+- Prayer timing adjustments.
+- Quran reading timer.
+- Prayer focus overlay.
+- Background service worker.
+- Local storage and existing settings.
+- Existing API fallback and caching behavior.
+
+Every existing feature must continue working after the redesign.
+
+### Technical Restrictions
+
+1. Do not rewrite the entire application unnecessarily.
+2. Do not replace the existing prayer calculation engine.
+3. Do not remove existing API providers.
+4. Do not change existing API endpoints unless absolutely necessary.
+5. Do not change the storage schema without a strong compatibility reason.
+6. Preserve existing Chrome Extension Manifest V3 compatibility.
+7. Preserve all existing message listeners and communication between popup, dashboard, content scripts, and service worker.
+8. Preserve existing language translations.
+9. Do not introduce unnecessary external dependencies.
+10. Do not add frameworks unless the existing architecture genuinely requires them.
+11. Do not use mock data in place of real application data.
+12. Do not hardcode prayer times.
+13. Never compromise functionality for visual appearance.
+
+Before making changes, inspect all project files and understand how the components communicate.
+
+---
+
+# 2. OVERALL DESIGN DIRECTION
+
+Create a visual identity called:
+
+**Premium Islamic Minimalism + Soft Glassmorphism**
+
+The application should feel like a professionally designed premium productivity application.
+
+Design references and inspiration:
+
+- Apple Human Interface Guidelines.
+- Modern SaaS dashboards.
+- Linear-style interface organization.
+- Premium Islamic lifestyle applications.
+- Soft glassmorphism.
+- Minimalist productivity interfaces.
+
+The design should be elegant, calm, focused, and distraction-free.
+
+Avoid:
+
+- Excessive gradients.
+- Excessive shadows.
+- Oversized typography.
+- Too many rounded cards.
+- Unnecessary decorative elements.
+- Crowded layouts.
+- Generic dashboard templates.
+- Excessive animations.
+- Emoji-based navigation icons.
+
+Use Lucide-style icons consistently.
+
+Use a consistent spacing system, typography scale, border radius, and component design.
+
+The result must look like one unified application rather than several separately designed pages.
+
+---
+
+# 3. DESIGN SYSTEM
+
+Build a reusable design system before redesigning individual screens.
+
+## 3.1 Color Palette
+
+### Light Theme
+
+Use a warm, clean, premium interface.
+
+Suggested tokens:
+
+- Main background: #F6F8F5
+- Secondary background: #EEF3EE
+- Primary surface: #FFFFFF
+- Secondary surface: #F8FAF8
+- Primary text: #18251F
+- Secondary text: #728078
+- Primary emerald: #16845B
+- Dark emerald: #106B49
+- Soft emerald: #E3F3EA
+- Accent gold: #C59B52
+- Border: #E4EBE5
+- Success: #23875A
+- Warning: #C58A32
+- Error: #D65A5A
+
+### Dark Theme
+
+Create a premium midnight interface.
+
+Suggested tokens:
+
+- Main background: #101A17
+- Secondary background: #15231E
+- Primary surface: #1B2B24
+- Secondary surface: #21342B
+- Primary text: #F0F5F1
+- Secondary text: #A1B1A7
+- Primary emerald: #48B889
+- Dark emerald: #267B58
+- Soft emerald: #244B38
+- Accent gold: #D6B46F
+- Border: rgba(255,255,255,0.08)
+
+### Theme Requirements
+
+Implement:
+
+- Light theme.
+- Dark theme.
+- System theme.
+
+The selected theme must persist after browser restart.
+
+System theme must respond to the operating system's preferred color scheme.
+
+Do not duplicate CSS between themes unnecessarily. Use centralized CSS variables.
+
+---
+
+# 4. GLOBAL COMPONENT SYSTEM
+
+Create reusable components for:
+
+- Buttons.
+- Icon buttons.
+- Navigation items.
+- Cards.
+- Section headers.
+- Status indicators.
+- Prayer time cards.
+- Countdown components.
+- Progress indicators.
+- Toggle switches.
+- Select inputs.
+- Text inputs.
+- Tooltips.
+- Dialogs.
+- Toast notifications.
+- Empty states.
+- Loading states.
+- Error states.
+- Confirmation dialogs.
+
+All components must have consistent:
+
+- Padding.
+- Border radius.
+- Typography.
+- Colors.
+- Hover states.
+- Focus states.
+- Disabled states.
+- Responsive behavior.
+
+Use subtle transitions around 150–250ms.
+
+Respect `prefers-reduced-motion`.
+
+Avoid animation that distracts users during prayer or reading.
+
+---
+
+# 5. CHROME EXTENSION POPUP REDESIGN
+
+The popup is one of the most important parts of the application.
+
+Redesign it as a compact premium prayer companion.
+
+Target dimensions:
+
+- Width: approximately 380–400px.
+- Height: adapt naturally to content.
+- Avoid unnecessary vertical scrolling.
+- Maintain compatibility with Chrome popup limitations.
+
+## 5.1 Popup Header
+
+Create a compact header containing:
+
+Left:
+- Application logo.
+- Prayer Focus title.
+- Small subtitle such as "Your daily prayer companion".
+
+Right:
+- Theme toggle.
+- Language toggle.
+- Dashboard shortcut.
+
+The header must be clean and compact.
+
+## 5.2 Next Prayer Hero Card
+
+This should be the primary visual element.
+
+Display:
+
+- Next prayer name.
+- Prayer time.
+- Live countdown.
+- Small descriptive text.
+- A subtle emerald gradient or soft glass background.
+
+Example:
+
+NEXT PRAYER
+
+Dhuhr
+
+12:15 PM
+
+02:34:18
+
+Use a clear countdown hierarchy.
+
+The countdown must use the existing real prayer schedule and existing timer logic.
+
+Do not create a second independent countdown system.
+
+When a prayer time passes, update the next prayer correctly.
+
+## 5.3 Daily Prayer Schedule
+
+Display all five daily prayers:
+
+- Fajr.
+- Dhuhr.
+- Asr.
+- Maghrib.
+- Isha.
+
+Each prayer row should contain:
+
+- Prayer icon.
+- Prayer name.
+- Prayer time.
+- Current/next/completed status.
+
+Visual states:
+
+- Previous prayers: subtle muted appearance.
+- Next prayer: highlighted emerald background.
+- Current active state: clear indicator.
+- Upcoming prayers: normal appearance.
+
+The layout must remain compact and readable.
+
+### Sunrise
+
+If the existing prayer API or schedule provides Sunrise, display it as an optional secondary entry.
+
+Do not treat Sunrise as one of the five obligatory prayers.
+
+Do not invent a Sunrise time if unavailable.
+
+## 5.4 Tahajjud Preview
+
+Add a dedicated compact Tahajjud card.
+
+Display:
+
+- Tahajjud status.
+- Start time.
+- End time.
+- Countdown or time remaining.
+- A shortcut to the Tahajjud section in the dashboard.
+
+Preserve the existing Tahajjud calculation and timing logic.
+
+## 5.5 Daily Quote
+
+Display a small daily Islamic quote card.
+
+Requirements:
+
+- Preserve existing quote source and selection logic.
+- Preserve Bengali and English quote behavior.
+- Keep the quote visually readable.
+- Provide a copy action if compatible with existing functionality.
+- Avoid making the quote card unnecessarily tall.
+
+## 5.6 Popup Footer
+
+Include:
+
+- Location.
+- Data status.
+- Last updated information if available.
+- Notification status.
+- Dashboard shortcut.
+
+### Data Status States
+
+Create clear visual states:
+
+**Live**
+- Freshly retrieved prayer schedule.
+
+**Cached**
+- Previously saved schedule is being used.
+
+**Offline**
+- No network connection.
+
+**Unavailable**
+- No valid schedule is available.
+
+Do not falsely label cached information as live.
+
+Use the existing data state and provider response wherever possible.
+
+Do not invent successful API responses.
+
+### Popup Refresh
+
+Improve the refresh interaction.
+
+Requirements:
+
+- Show a loading state.
+- Prevent repeated refresh clicks while a request is running.
+- Show success or failure feedback.
+- Preserve the previous valid schedule if a refresh fails.
+- Never leave the user with a blank popup unnecessarily.
+
+---
+
+# 6. FULL DASHBOARD REDESIGN
+
+The dashboard should become a professional multi-section application.
+
+Do not keep every feature inside one long, unstructured page.
+
+Create a clean navigation structure.
+
+## 6.1 Desktop Layout
+
+Use a modern application layout:
+
+- Left sidebar.
+- Main content area.
+- Optional contextual top actions.
+
+Suggested layout:
+
+Sidebar width: 230–250px.
+
+Main content: flexible.
+
+Use a maximum content width for readability.
+
+### Sidebar Header
+
+Display:
+
+- Prayer Focus logo.
+- Application name.
+- Small tagline.
+
+### Navigation
+
+Create the following navigation items:
+
+1. Overview
+2. Prayer Times
+3. Tahajjud
+4. Prayer Tracker
+5. Daily Quotes
+6. Quran Reading
+7. Location
+8. Provider Health
+9. Settings
+10. About
+
+Use consistent icons.
+
+The active navigation item should have a subtle emerald highlight.
+
+Navigation must work correctly without unnecessary page reloads.
+
+Preserve existing dashboard routing or implement a lightweight section-navigation system compatible with the current architecture.
+
+Do not create broken navigation links.
+
+## 6.2 Mobile Dashboard
+
+The dashboard must be fully responsive.
+
+For mobile:
+
+- Replace the desktop sidebar with a compact mobile navigation.
+- Use a bottom navigation bar or a compact navigation drawer.
+- Ensure the main content has sufficient bottom padding.
+- Avoid horizontal overflow.
+- Make all cards fit the viewport.
+- Use appropriate touch targets.
+- Keep text readable.
+- Do not let navigation cover important content.
+
+Do not simply shrink the desktop layout.
+
+Design a proper mobile experience.
+
+## 6.3 Overview Page
+
+The Overview page should provide a complete daily summary.
+
+### Welcome Header
+
+Display:
+
+- Greeting based on local time.
+- Current date.
+- Current location.
+- A compact status message.
+
+### Main Prayer Countdown
+
+Create a prominent next-prayer section.
+
+Display:
+
+- Next prayer.
+- Prayer time.
+- Live countdown.
+- Progress indicator showing time until the next prayer.
+
+The countdown must use the existing prayer schedule.
+
+### Prayer Overview
+
+Display five prayer cards in a responsive grid.
+
+Each card should contain:
+
+- Prayer name.
+- Prayer time.
+- Status.
+- Appropriate icon.
+
+Highlight the next prayer.
+
+### Daily Progress
+
+Display:
+
+- Completed prayers.
+- Remaining prayers.
+- Daily completion percentage.
+- Weekly progress if existing data supports it.
+
+Use clean progress bars and compact statistics.
+
+Do not fabricate historical statistics.
+
+### Tahajjud Summary
+
+Display:
+
+- Current Tahajjud status.
+- Relevant timing.
+- Countdown.
+- Link to full Tahajjud section.
+
+### Daily Quote
+
+Display the selected daily quote in a beautiful but restrained card.
+
+### Quick Actions
+
+Provide shortcuts to:
+
+- Prayer tracker.
+- Prayer times.
+- Tahajjud.
+- Quran reading.
+- Settings.
+
+---
+
+# 7. DEDICATED PRAYER TIMES PAGE
+
+Create a dedicated Prayer Times section.
+
+Display:
+
+- Selected location.
+- Current date.
+- Calculation method.
+- Provider information.
+- All available daily prayer times.
+- Sunrise if available.
+- Next prayer countdown.
+- Last successful synchronization.
+- Data freshness status.
+
+Create a beautiful vertical timeline or schedule layout.
+
+Each prayer entry should clearly distinguish:
+
+- Passed prayers.
+- Next prayer.
+- Upcoming prayers.
+
+Include a refresh action.
+
+Include a clear explanation of cached or unavailable data when relevant.
+
+Do not replace the existing API logic.
+
+---
+
+# 8. DEDICATED TAHAJJUD PAGE
+
+Create a dedicated Tahajjud interface.
+
+Display:
+
+- Tahajjud start.
+- Tahajjud end.
+- Current status.
+- Time remaining.
+- Relevant night timing information already supported by the application.
+
+Use a calm, minimal night-inspired visual style.
+
+A subtle midnight background or emerald accent is acceptable.
+
+Do not introduce new religious rulings or unsupported religious claims.
+
+Do not modify the existing Tahajjud calculation.
+
+Include a simple explanatory section using existing application text where available.
+
+---
+
+# 9. PRAYER TRACKER PAGE
+
+Create a dedicated prayer tracking interface.
+
+Display:
+
+- Today's five prayers.
+- Completion status.
+- Individual prayer tracking controls.
+- Daily completion percentage.
+- Monthly calendar.
+- Historical records supported by existing stored data.
+
+Use:
+
+- Clear completed indicators.
+- Neutral incomplete states.
+- Accessible controls.
+- Consistent status colors.
+
+The user should be able to track prayers easily on mobile.
+
+Preserve existing tracking data and storage behavior.
+
+Do not reset historical records.
+
+Do not create duplicate records during UI updates.
+
+---
+
+# 10. DAILY QUOTES PAGE
+
+Create a dedicated Daily Quotes section.
+
+Display:
+
+- Current daily quote.
+- Quote category or source if available.
+- Language selector.
+- Previous/next navigation only if supported by existing quote data.
+- Copy button.
+- Share button using native browser sharing when supported.
+
+Requirements:
+
+- Preserve the existing quote dataset.
+- Preserve quote selection rules.
+- Preserve Bengali and English translations.
+- Do not fabricate Quran or Hadith references.
+- Do not misattribute quotations.
+- Keep typography readable.
+- Make the quote card suitable for screenshots and sharing.
+
+Create an elegant, distraction-free reading experience.
+
+---
+
+# 11. QURAN READING PAGE
+
+Create a dedicated Quran Reading section.
+
+Preserve the existing Quran reading timer.
+
+Display:
+
+- Reading timer.
+- Start/pause/reset controls.
+- Existing reading progress if supported.
+- Session information.
+- Relevant statistics if available.
+
+Use a calm reading-oriented interface.
+
+Do not add Quranic text or translations from unverified sources.
+
+Do not break existing timer persistence.
+
+---
+
+# 12. LOCATION PAGE
+
+Create a dedicated Location management section.
+
+Display:
+
+- Current selected location.
+- Latitude and longitude if already available.
+- Current timezone.
+- Location source.
+- Location selection controls.
+- Location refresh or detection action if supported.
+
+Allow the user to manage their location easily.
+
+Clearly indicate whether the location is manually selected or automatically detected, if the existing system tracks this information.
+
+Preserve existing location settings and storage.
+
+Do not silently overwrite a manually selected location.
+
+---
+
+# 13. PROVIDER HEALTH PAGE
+
+This section is particularly important.
+
+Create a professional API and data diagnostics interface.
+
+The application uses external prayer-time providers.
+
+The user should be able to understand whether prayer-time synchronization is working.
+
+Display available information such as:
+
+- Active provider.
+- Provider priority.
+- Provider availability.
+- Last successful request.
+- Last failed request.
+- Last error message.
+- Cached schedule status.
+- Current synchronization status.
+- Retry or cooldown status if supported by the existing code.
+
+Use clear provider status indicators:
+
+- Operational.
+- Degraded.
+- Unavailable.
+- Not checked.
+
+Only display information that can be obtained from the actual application state.
+
+Do not invent provider health.
+
+Do not make unnecessary API calls just to populate this page.
+
+Add a manual diagnostic action if it can safely reuse the existing API request mechanism.
+
+### Error Presentation
+
+When an external provider returns an error:
+
+- Explain that the provider is temporarily unavailable.
+- Show whether another provider succeeded.
+- Show whether cached data is being used.
+- Avoid displaying raw technical errors as the main user-facing message.
+- Provide expandable technical details for debugging.
+
+Do not expose API keys, credentials, or private information.
+
+---
+
+# 14. SETTINGS REDESIGN
+
+The current settings interface should be redesigned into a clean and organized settings experience.
+
+Avoid one long, crowded settings form.
+
+Organize settings into categories.
+
+### General
+
+- Language.
+- Theme.
+- Startup behavior.
+- General preferences.
+
+### Appearance
+
+- Light mode.
+- Dark mode.
+- System mode.
+- Visual preferences if supported.
+
+### Location
+
+- Current location.
+- Latitude.
+- Longitude.
+- Location detection.
+
+### Prayer Calculation
+
+- Calculation method.
+- Existing prayer calculation preferences.
+- Existing timing adjustments.
+
+### Providers
+
+- Provider selection.
+- Automatic provider mode.
+- Existing provider preferences.
+
+### Notifications
+
+- Prayer reminders.
+- Existing notification settings.
+- Reminder timing.
+- Notification permissions status.
+
+### Advanced
+
+- Existing advanced options.
+- Cache-related controls if already supported.
+- Debug information if available.
+
+### About
+
+- Application version.
+- Description.
+- Credits.
+- Privacy information if available.
+- Existing links.
+
+Requirements:
+
+1. Preserve every existing setting.
+2. Preserve current setting values.
+3. Preserve existing storage keys.
+4. Do not reset user preferences.
+5. Validate input fields.
+6. Show clear save feedback.
+7. Support keyboard navigation.
+8. Make settings usable on mobile.
+
+---
+
+# 15. NOTIFICATIONS AND FOCUS OVERLAY
+
+Redesign the visual presentation of notifications and the prayer focus overlay.
+
+Preserve existing functionality.
+
+## Notifications
+
+Improve:
+
+- Typography.
+- Icon presentation.
+- Spacing.
+- Contrast.
+- Status clarity.
+
+Do not change notification scheduling logic.
+
+## Prayer Focus Overlay
+
+Improve:
+
+- Visual hierarchy.
+- Prayer name.
+- Countdown or timing information.
+- Readability.
+- Dismiss controls.
+- Mobile behavior.
+
+The overlay should feel calm and unobtrusive.
+
+Do not interfere with the host webpage unnecessarily.
+
+Preserve existing content-script functionality and permissions.
+
+---
+
+# 16. RESPONSIVE DESIGN REQUIREMENTS
+
+Test the entire application at these viewport sizes:
+
+- 320px.
+- 360px.
+- 375px.
+- 390px.
+- 430px.
+- 768px.
+- 1024px.
+- 1280px.
+- 1440px.
+
+Requirements:
+
+- No horizontal scrolling.
+- No clipped text.
+- No overlapping controls.
+- No broken card grids.
+- No inaccessible buttons.
+- No navigation overlap.
+- No fixed elements covering content.
+- No excessive empty space.
+- Proper mobile typography.
+- Appropriate touch targets.
+
+The popup and dashboard must be treated as different environments.
+
+Do not assume that popup CSS and dashboard CSS behave identically.
+
+---
+
+# 17. ACCESSIBILITY
+
+Follow practical accessibility standards.
+
+Implement:
+
+- Semantic HTML.
+- Correct heading hierarchy.
+- Accessible labels.
+- Keyboard navigation.
+- Visible focus indicators.
+- Sufficient color contrast.
+- Accessible toggle controls.
+- Appropriate ARIA attributes.
+- Reduced motion support.
+
+Do not use color alone to communicate status.
+
+---
+
+# 18. ANIMATION AND INTERACTION
+
+Use subtle, purposeful animation.
+
+Examples:
+
+- Smooth card hover.
+- Small navigation transitions.
+- Countdown updates without layout shifts.
+- Subtle loading indicators.
+- Smooth section transitions.
+- Small toast notifications.
+
+Avoid:
+
+- Large animated backgrounds.
+- Constant pulsing.
+- Distracting motion.
+- Excessive blur.
+- Heavy animation libraries.
+
+All interactions should feel immediate and responsive.
+
+---
+
+# 19. EMPTY, LOADING, ERROR, AND OFFLINE STATES
+
+Every major section must have proper states.
+
+### Loading
+
+Show skeletons or subtle loading indicators.
+
+### Empty
+
+Show a helpful message and a relevant action.
+
+### Error
+
+Show a human-readable explanation.
+
+### Offline
+
+Clearly distinguish offline mode from provider failure.
+
+### Cached Data
+
+Show when previously saved data is being used.
+
+### Success
+
+Use subtle confirmation feedback.
+
+Never leave the interface blank when data is unavailable.
+
+Never display fake prayer schedules.
+
+Never falsely report a successful synchronization.
+
+---
+
+# 20. PERFORMANCE AND CODE QUALITY
+
+The redesigned application must remain lightweight.
+
+Requirements:
+
+- Avoid unnecessary DOM updates.
+- Avoid duplicate event listeners.
+- Avoid unnecessary API requests.
+- Avoid repeated storage reads.
+- Avoid excessive timers.
+- Reuse existing countdown logic.
+- Reuse existing state.
+- Clean up event listeners when necessary.
+- Prevent memory leaks.
+- Keep popup loading fast.
+- Keep dashboard responsive.
+
+Use modular CSS and reusable components where appropriate.
+
+Avoid unnecessary code duplication.
+
+Do not introduce a complex state-management system for a small extension.
+
+---
+
+# 21. IMPLEMENTATION STRATEGY
+
+Work in the following order.
+
+### Phase 1 — Project Audit
+
+Inspect:
+
+- manifest.json.
+- Popup HTML/CSS/JS.
+- Dashboard HTML/CSS/JS.
+- Background service worker.
+- Prayer API module.
+- Quotes module.
+- Content scripts.
+- Overlay styles.
+- Storage utilities.
+- Existing translations.
+- README and assets.
+
+Understand the complete architecture before editing.
+
+### Phase 2 — Design System
+
+Create:
+
+- Global design tokens.
+- Light/dark/system themes.
+- Typography.
+- Shared components.
+- Icon system.
+- Spacing system.
+- Responsive utilities.
+
+### Phase 3 — Popup
+
+Redesign the popup completely.
+
+Test all existing interactions.
+
+### Phase 4 — Dashboard
+
+Implement:
+
+- Sidebar.
+- Mobile navigation.
+- Overview.
+- Prayer Times.
+- Tahajjud.
+- Prayer Tracker.
+- Daily Quotes.
+- Quran Reading.
+- Location.
+- Provider Health.
+- Settings.
+- About.
+
+Use existing functionality and data.
+
+### Phase 5 — Overlay and Notifications
+
+Upgrade the remaining extension surfaces.
+
+### Phase 6 — Responsive and Accessibility Audit
+
+Test all specified viewport sizes and accessibility behavior.
+
+### Phase 7 — Functional Regression Testing
+
+Verify that every original feature still works.
+
+---
+
+# 22. REQUIRED FUNCTIONAL TESTS
+
+Before completion, verify:
+
+## Prayer Times
+
+- Existing prayer-time fetching still works.
+- Existing calculation methods still work.
+- Existing provider selection still works.
+- Existing fallback behavior still works.
+- Cached data remains available.
+- Timezone behavior remains correct.
+- Countdown remains accurate.
+- Next prayer changes correctly.
+
+## Tahajjud
+
+- Existing calculation remains unchanged.
+- Start and end times display correctly.
+- Countdown works.
+
+## Prayer Tracking
+
+- Existing records remain intact.
+- Tracking controls work.
+- Monthly calendar works.
+- Statistics remain accurate.
+
+## Quotes
+
+- Existing quotes still display.
+- Bengali language works.
+- English language works.
+- Existing selection rules remain intact.
+
+## Settings
+
+- Existing settings load correctly.
+- Saving settings works.
+- Values persist after restarting Chrome.
+- Theme preference persists.
+- Language preference persists.
+
+## Popup and Dashboard
+
+- Popup opens correctly.
+- Dashboard opens correctly.
+- All navigation works.
+- No console errors.
+- No broken buttons.
+- No broken icons.
+- No horizontal overflow.
+
+## Chrome Extension
+
+- Manifest remains valid.
+- All referenced files exist.
+- Permissions remain appropriate.
+- Service worker works.
+- Content scripts work.
+- Extension can be loaded through Chrome's Load unpacked option.
+
+---
+
+# 23. VISUAL QUALITY CHECKLIST
+
+Before considering the task complete, confirm:
+
+- The popup looks premium and polished.
+- The dashboard has a professional application layout.
+- All pages share the same design language.
+- Light theme works.
+- Dark theme works.
+- System theme works.
+- Mobile navigation works.
+- Cards are consistent.
+- Typography is consistent.
+- Spacing is consistent.
+- Icons are consistent.
+- Empty states look intentional.
+- Loading states look intentional.
+- Error states look intentional.
+- No section looks unfinished.
+- No feature has been removed to simplify the redesign.
+
+The final result should look like a production-ready premium Chrome Extension.
+
+---
+
+# 24. FINAL DELIVERABLES
+
+After implementation:
+
+1. Update the actual project files.
+2. Keep the original folder structure unless a necessary change is justified.
+3. Preserve all existing features.
+4. Remove unused CSS and obsolete UI code only after verifying it is no longer needed.
+5. Update README documentation to reflect the actual application and version.
+6. Validate manifest.json.
+7. Run JavaScript syntax checks.
+8. Check that all referenced files exist.
+9. Test the ZIP archive integrity.
+10. Package the complete extension into a new ZIP file.
+
+Provide:
+
+- A downloadable ZIP containing the complete updated extension.
+- A concise summary of the redesigned interfaces.
+- A list of modified files.
+- A list of tests performed.
+- Any remaining known issues.
+
+Do not provide only code snippets or design suggestions.
+
+Actually implement the changes in the supplied project.
+
+If a feature cannot be completed without changing existing business logic, preserve the original behavior and explain the limitation rather than silently removing it.
+
+---
+
+# FINAL INSTRUCTION
+
+Think like a senior product designer and a careful Chrome Extension engineer.
+
+Your priority is:
+
+**100% existing functionality preservation + premium UI/UX + responsive design + clean implementation.**
+
+Do not sacrifice reliability for aesthetics.
+
+Do not build a different application.
+
+Transform the existing Prayer Focus extension into a cohesive, beautiful, modern, production-ready product while keeping everything that already works.

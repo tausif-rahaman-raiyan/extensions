@@ -61,12 +61,12 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const tahajjud = getTahajjudStatus(times, currentTime);
 
   const prayerCards = [
-    { key: 'fajr', nameEn: 'Fajr', arabic: 'الفجر', timeStr: times.fajr, isCurrent: nextPrayer.currentWaqtNameEn.includes('Fajr') },
-    { key: 'sunrise', nameEn: 'Sunrise', arabic: 'الشروق', timeStr: times.sunrise, isCurrent: nextPrayer.currentWaqtNameEn.includes('Ishraq') },
-    { key: 'dhuhr', nameEn: 'Dhuhr', arabic: 'الظهر', timeStr: times.dhuhr, isCurrent: nextPrayer.currentWaqtNameEn.includes('Dhuhr') },
-    { key: 'asr', nameEn: 'Asr', arabic: 'العصر', timeStr: times.asr, isCurrent: nextPrayer.currentWaqtNameEn.includes('Asr') },
-    { key: 'maghrib', nameEn: 'Maghrib', arabic: 'المغرب', timeStr: times.maghrib, isCurrent: nextPrayer.currentWaqtNameEn.includes('Maghrib') },
-    { key: 'isha', nameEn: 'Isha', arabic: 'العشاء', timeStr: times.isha, isCurrent: nextPrayer.currentWaqtNameEn.includes('Isha') }
+    { key: 'fajr', nameEn: 'Fajr', arabic: 'الفجر', timeStr: times.fajr, endTimeStr: times.sunrise, isCurrent: nextPrayer.currentWaqtNameEn.includes('Fajr') },
+    { key: 'sunrise', nameEn: 'Sunrise', arabic: 'الشروق', timeStr: times.sunrise, endTimeStr: times.dhuhr, isCurrent: nextPrayer.currentWaqtNameEn.includes('Ishraq') },
+    { key: 'dhuhr', nameEn: 'Dhuhr', arabic: 'الظهر', timeStr: times.dhuhr, endTimeStr: times.asr, isCurrent: nextPrayer.currentWaqtNameEn.includes('Dhuhr') },
+    { key: 'asr', nameEn: 'Asr', arabic: 'العصر', timeStr: times.asr, endTimeStr: times.maghrib, isCurrent: nextPrayer.currentWaqtNameEn.includes('Asr') },
+    { key: 'maghrib', nameEn: 'Maghrib', arabic: 'المغرب', timeStr: times.maghrib, endTimeStr: times.isha, isCurrent: nextPrayer.currentWaqtNameEn.includes('Maghrib') },
+    { key: 'isha', nameEn: 'Isha', arabic: 'العشاء', timeStr: times.isha, endTimeStr: times.fajr, isCurrent: nextPrayer.currentWaqtNameEn.includes('Isha') }
   ];
 
   const completedCount = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'tahajjud'].filter(
@@ -191,6 +191,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 </div>
                 <div className="text-xl font-bold font-mono-numbers text-emerald-400">
                   {format12HourTime(card.timeStr)}
+                </div>
+                <div className="text-[11px] font-mono-numbers text-slate-400 mt-0.5">
+                  Limit: {format12HourTime(card.endTimeStr)}
                 </div>
 
                 {card.key !== 'sunrise' && (

@@ -9,7 +9,7 @@ import {
   Clock,
   ShieldCheck,
   CheckCircle2,
-  AlertTriangle
+  BellRing
 } from 'lucide-react';
 import {
   PrayerTimes,
@@ -21,7 +21,8 @@ import {
   CalculationMethod,
   ThemeMode,
   NotificationSettings,
-  NavSection
+  NavSection,
+  ManualPrayerOverrides
 } from '../types/prayer';
 import { Sidebar } from './Sidebar';
 import { TopQuoteBanner } from './TopQuoteBanner';
@@ -35,6 +36,8 @@ import { LocationView } from './views/LocationView';
 import { ProviderHealthView } from './views/ProviderHealthView';
 import { SettingsView } from './views/SettingsView';
 import { AboutView } from './views/AboutView';
+import { PrayerReminderModal } from './PrayerReminderModal';
+import { FocusModeModal } from './FocusModeModal';
 import { playIslamicChime } from '../utils/soundHelper';
 
 export interface FullDashboardProps {
@@ -68,6 +71,8 @@ export interface FullDashboardProps {
   onChangeNotifications: (settings: NotificationSettings) => void;
   activeSection: NavSection;
   onSelectSection: (section: NavSection) => void;
+  manualOverrides: ManualPrayerOverrides;
+  onSaveManualOverrides: (overrides: ManualPrayerOverrides) => void;
 }
 
 export const FullDashboard: React.FC<FullDashboardProps> = ({
@@ -100,11 +105,24 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
   notifications,
   onChangeNotifications,
   activeSection,
-  onSelectSection
+  onSelectSection,
+  manualOverrides,
+  onSaveManualOverrides
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [soundPlayed, setSoundPlayed] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Prayer Arrival Reminder & 5-min Focus Mode Modal States
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [focusModalOpen, setFocusModalOpen] = useState(false);
+  const [activeAlertWaqt, setActiveAlertWaqt] = useState({
+    name: 'Dhuhr',
+    nameBn: 'যোহর',
+    key: 'dhuhr',
+    start: times.dhuhr,
+    end: times.asr
+  });
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -120,8 +138,34 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
     setTimeout(() => setSoundPlayed(false), 2000);
   };
 
-  const sitpHealth = providerStatus['sitp'];
-  const hasSitp502 = sitpHealth?.status === 'offline_502' || sitpHealth?.status === 'cooldown';
+  const handleOpenReminderTest = (waqtName: string, start: string, end: string) => {
+    const key = waqtName.toLowerCase();
+    setActiveAlertWaqt({
+      name: waqtName,
+      nameBn: key === 'fajr' ? 'ফজর' : key === 'dhuhr' ? 'যোহর' : key === 'asr' ? 'আসর' : key === 'maghrib' ? 'মাগরিব' : 'এশা',
+      key,
+      start,
+      end
+    });
+    setReminderModalOpen(true);
+    playIslamicChime();
+  };
+
+  const handlePrayedAction = () => {
+    onTogglePrayer(activeAlertWaqt.key);
+    setReminderModalOpen(false);
+    showToast(`Alhamdulillah! Marked ${activeAlertWaqt.name} prayer as completed.`);
+  };
+
+  const handleRemindLaterAction = () => {
+    setReminderModalOpen(false);
+    showToast(`Reminder snoozed for 10 minutes for ${activeAlertWaqt.name} Namaz.`);
+  };
+
+  const handleOpenFocusModeAction = () => {
+    setReminderModalOpen(false);
+    setFocusModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--color-text)] flex transition-colors duration-200">
@@ -162,7 +206,7 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
             {/* Mobile hamburger menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="md:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               aria-label="Open Navigation Menu"
             >
               <Menu className="w-5 h-5" />
@@ -180,24 +224,22 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
             </div>
           </div>
 
-          {/* Quick controls: Provider notice, Location, Sound, Mini Widget */}
+          {/* Quick controls: Test Alert, Location, Sound, Mini Widget */}
           <div className="flex items-center gap-2 text-xs">
-            {/* 502 Shield Notice if SITP is in cooldown */}
-            {hasSitp502 && (
-              <button
-                onClick={() => onSelectSection('providers')}
-                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-colors"
-                title="SITP 502 Bad Gateway intercepted. Running on fallback provider without interruption."
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[11px] font-medium">Auto-Recovery Active</span>
-              </button>
-            )}
+            {/* Prayer Arrival Alert Test Button */}
+            <button
+              onClick={() => handleOpenReminderTest('Dhuhr', times.dhuhr, times.asr)}
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium transition-colors cursor-pointer"
+              title="Preview the interactive namaz arrival popup with Bengali wisdom and 5-min Focus Mode"
+            >
+              <BellRing className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Namaz Alert Preview</span>
+            </button>
 
             {/* Quick Location badge */}
             <button
               onClick={onOpenLocationModal}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--bg-canvas)] hover:border-emerald-500/40 text-[var(--color-text-muted)] hover:text-emerald-400 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--bg-canvas)] hover:border-emerald-500/40 text-[var(--color-text-muted)] hover:text-emerald-400 transition-colors cursor-pointer"
               title="Change location"
             >
               <MapPin className="w-3.5 h-3.5 text-emerald-400" />
@@ -207,7 +249,7 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
             {/* Sound chime test */}
             <button
               onClick={handlePlaySound}
-              className={`p-2 rounded-xl border border-[var(--color-border)] bg-[var(--bg-canvas)] hover:border-emerald-500/40 text-[var(--color-text-muted)] hover:text-emerald-400 transition-colors ${
+              className={`p-2 rounded-xl border border-[var(--color-border)] bg-[var(--bg-canvas)] hover:border-emerald-500/40 text-[var(--color-text-muted)] hover:text-emerald-400 transition-colors cursor-pointer ${
                 soundPlayed ? 'text-emerald-400 border-emerald-500/50 scale-95' : ''
               }`}
               title="Test Islamic prayer reminder chime"
@@ -218,7 +260,7 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
             {/* Mini Popup toggle */}
             <button
               onClick={onOpenMiniWidget}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium transition-colors"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium transition-colors cursor-pointer"
               title="Switch to Chrome extension mini popup preview"
             >
               <Minimize2 className="w-3.5 h-3.5" />
@@ -273,6 +315,7 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
               onResetToday={onResetToday}
               juristic={juristic}
               onOpenCalendarModal={onOpenCalendarModal}
+              onTestReminder={handleOpenReminderTest}
             />
           )}
 
@@ -333,6 +376,12 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
                 onChangeNotifications(n);
                 showToast('Notification settings saved');
               }}
+              manualOverrides={manualOverrides}
+              onSaveManualOverrides={(o) => {
+                onSaveManualOverrides(o);
+                showToast(o.enabled ? 'Manual prayer overrides applied' : 'Manual overrides disabled (using calculation)');
+              }}
+              currentTimes={times}
             />
           )}
 
@@ -341,6 +390,31 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
           )}
         </main>
       </div>
+
+      {/* Prayer Time Arrival Reminder Modal */}
+      <PrayerReminderModal
+        isOpen={reminderModalOpen}
+        onClose={() => setReminderModalOpen(false)}
+        prayerName={activeAlertWaqt.name}
+        prayerNameBn={activeAlertWaqt.nameBn}
+        startTime={activeAlertWaqt.start}
+        endTime={activeAlertWaqt.end}
+        quote={hourlyQuote}
+        onPrayed={handlePrayedAction}
+        onRemindLater={handleRemindLaterAction}
+        onOpenFocusMode={handleOpenFocusModeAction}
+      />
+
+      {/* 5-Minute Fullscreen Focus Mode Modal */}
+      <FocusModeModal
+        isOpen={focusModalOpen}
+        onClose={() => setFocusModalOpen(false)}
+        prayerName={activeAlertWaqt.name}
+        onMarkPrayed={() => {
+          onTogglePrayer(activeAlertWaqt.key);
+          showToast(`Alhamdulillah! Marked ${activeAlertWaqt.name} as prayed.`);
+        }}
+      />
     </div>
   );
 };

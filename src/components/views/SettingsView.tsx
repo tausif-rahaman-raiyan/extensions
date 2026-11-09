@@ -10,7 +10,8 @@ import {
   Check,
   Moon,
   Sun,
-  Laptop
+  Laptop,
+  Clock
 } from 'lucide-react';
 import {
   ThemeMode,
@@ -18,7 +19,9 @@ import {
   CalculationMethod,
   ProviderId,
   LocationInfo,
-  NotificationSettings
+  NotificationSettings,
+  ManualPrayerOverrides,
+  PrayerTimes
 } from '../../types/prayer';
 
 interface SettingsViewProps {
@@ -34,6 +37,9 @@ interface SettingsViewProps {
   onOpenLocationModal: () => void;
   notifications: NotificationSettings;
   onChangeNotifications: (settings: NotificationSettings) => void;
+  manualOverrides: ManualPrayerOverrides;
+  onSaveManualOverrides: (overrides: ManualPrayerOverrides) => void;
+  currentTimes?: PrayerTimes;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -48,18 +54,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   location,
   onOpenLocationModal,
   notifications,
-  onChangeNotifications
+  onChangeNotifications,
+  manualOverrides,
+  onSaveManualOverrides,
+  currentTimes
 }) => {
-  const [activeCategory, setActiveCategory] = useState<string>('appearance');
+  const [activeCategory, setActiveCategory] = useState<string>(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#manual') return 'manual';
+    return 'appearance';
+  });
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [formOverrides, setFormOverrides] = useState<ManualPrayerOverrides>(manualOverrides);
 
   const showSaveNotice = () => {
     setSavedFeedback(true);
-    setTimeout(() => setSavedFeedback(false), 2000);
+    setTimeout(() => setSavedFeedback(false), 2500);
   };
 
   const categories = [
     { id: 'appearance', label: 'Appearance & Theme', icon: Palette },
+    { id: 'manual', label: 'Manual Prayer Overrides', icon: Clock },
     { id: 'calculation', label: 'Prayer Calculation', icon: Compass },
     { id: 'providers', label: 'API Providers', icon: Server },
     { id: 'notifications', label: 'Notifications & Audio', icon: Bell },
@@ -172,7 +186,117 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           )}
 
-          {/* 2. Calculation */}
+          {/* Manual Prayer Overrides */}
+          {activeCategory === 'manual' && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-emerald-400" />
+                    <span>Direct Manual Prayer Time Overrides</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Set fixed clock times for your local mosque in 24-hour HH:mm format. Overrides apply across all views, widgets, and reminders.
+                  </p>
+                </div>
+              </div>
+
+              {/* Enable / Disable Toggle */}
+              <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold text-slate-200">
+                    Enable Manual Time Overrides
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    When enabled, manual times supersede API and astronomical calculations.
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formOverrides.enabled}
+                  onChange={(e) => {
+                    const updated = { ...formOverrides, enabled: e.target.checked };
+                    setFormOverrides(updated);
+                    onSaveManualOverrides(updated);
+                    showSaveNotice();
+                  }}
+                  className="w-5 h-5 accent-emerald-500 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Time inputs grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {[
+                  { key: 'fajr', label: 'Fajr (ওয়াক্ত শুরু)', calc: currentTimes?.fajr || '04:45' },
+                  { key: 'sunrise', label: 'Sunrise (সূর্যোদয়)', calc: currentTimes?.sunrise || '06:01' },
+                  { key: 'dhuhr', label: 'Dhuhr (যোহর)', calc: currentTimes?.dhuhr || '11:37' },
+                  { key: 'asr', label: 'Asr (আসর)', calc: currentTimes?.asr || '15:36' },
+                  { key: 'maghrib', label: 'Maghrib (মাগরিব)', calc: currentTimes?.maghrib || '17:12' },
+                  { key: 'isha', label: 'Isha (এশা)', calc: currentTimes?.isha || '18:28' },
+                  { key: 'tahajjudStart', label: 'Tahajjud Start (তাহাজ্জুদ শুরু)', calc: currentTimes?.tahajjudStart || '01:15' }
+                ].map((item) => (
+                  <div key={item.key} className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-200">{item.label}</span>
+                      <span className="text-[10px] text-slate-400 font-mono-numbers">Current: {item.calc}</span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder={item.calc}
+                      value={(formOverrides as any)[item.key] || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setFormOverrides({ ...formOverrides, [item.key]: val });
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 placeholder:text-slate-600"
+                    />
+                    <div className="text-[10px] text-slate-400">
+                      Format: 24h HH:mm (e.g. {item.calc})
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    const toSave = { ...formOverrides, enabled: true };
+                    setFormOverrides(toSave);
+                    onSaveManualOverrides(toSave);
+                    showSaveNotice();
+                  }}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Save Manual Times</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    const reset: ManualPrayerOverrides = {
+                      enabled: false,
+                      fajr: '',
+                      sunrise: '',
+                      dhuhr: '',
+                      asr: '',
+                      maghrib: '',
+                      isha: '',
+                      tahajjudStart: ''
+                    };
+                    setFormOverrides(reset);
+                    onSaveManualOverrides(reset);
+                    showSaveNotice();
+                  }}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
+                >
+                  Reset to Calculated
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 3. Calculation */}
           {activeCategory === 'calculation' && (
             <div className="space-y-5">
               <h2 className="text-base font-bold text-slate-100">Prayer Calculation Methods</h2>
@@ -232,27 +356,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Choose your primary provider. If it ever fails (like an HTTP 502), Prayer Focus automatically cascades down the list.
               </p>
 
-              {(['aladhan', 'islamicfinder', 'waktusolat', 'sitp', 'astronomical'] as ProviderId[]).map((pid) => (
+              {[
+                { id: 'aladhan' as ProviderId, name: 'AlAdhan Global Coordinates API', desc: 'Primary coordinate lookup with Karachi 18° calculation and Hanafi 2x shadow' },
+                { id: 'aladhancity' as ProviderId, name: 'AlAdhan City API (WaktuSolat)', desc: 'City-based lookup for instant recovery if coordinate lookups fail' },
+                { id: 'prayzone' as ProviderId, name: 'PrayZone Global API', desc: 'Global city-level prayer schedule API' },
+                { id: 'islamicnetwork' as ProviderId, name: 'Islamic Network API', desc: 'Address and region query engine for global prayer times' },
+                { id: 'astronomical' as ProviderId, name: 'Local Astronomical Solar Engine', desc: '100% offline mathematical solar calculation based on Jean Meeus equations' }
+              ].map((p) => (
                 <div
-                  key={pid}
-                  onClick={() => { onChangeProvider(pid); showSaveNotice(); }}
+                  key={p.id}
+                  onClick={() => { onChangeProvider(p.id); showSaveNotice(); }}
                   className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between text-xs ${
-                    currentProvider === pid
+                    currentProvider === p.id
                       ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-300'
                       : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-900'
                   }`}
                 >
-                  <div>
-                    <span className="font-bold uppercase tracking-wider">{pid}</span>
-                    <span className="text-slate-500 ml-2">
-                      {pid === 'aladhan' && 'AlAdhan Global API (Primary)'}
-                      {pid === 'islamicfinder' && 'IslamicFinder Global API'}
-                      {pid === 'waktusolat' && 'WaktuSolat City Backup'}
-                      {pid === 'sitp' && 'SITP Prayer Times API (502 Protected)'}
-                      {pid === 'astronomical' && 'Local Solar Engine (100% Offline)'}
-                    </span>
+                  <div className="space-y-0.5">
+                    <div className="font-bold uppercase tracking-wider">{p.name}</div>
+                    <div className="text-slate-400 text-[11px]">{p.desc}</div>
                   </div>
-                  {currentProvider === pid && <Check className="w-4 h-4 text-emerald-400" />}
+                  {currentProvider === p.id && <Check className="w-4 h-4 text-emerald-400 shrink-0 ml-3" />}
                 </div>
               ))}
             </div>

@@ -1,9 +1,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   width: 360px;
-  background: #090d16;
+  background: #081014;
   color: #f1f5f9;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
 .font-bengali { font-family: 'Hind Siliguri', sans-serif; }
@@ -11,8 +11,8 @@ body {
 .font-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
 
 .quote-banner {
-  background: linear-gradient(135deg, rgba(5,150,105,0.2) 0%, rgba(15,23,42,0.9) 100%);
-  border-bottom: 1px solid rgba(16,185,129,0.3);
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, rgba(8, 16, 20, 0.95) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
   padding: 10px 14px;
 }
 .quote-header {
@@ -21,26 +21,38 @@ body {
   align-items: center;
   margin-bottom: 6px;
 }
+.quote-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.brand-logo-icon {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
 .badge {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   color: #34d399;
-  background: rgba(16,185,129,0.15);
-  border: 1px solid rgba(16,185,129,0.3);
-  padding: 2px 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 2px 7px;
   border-radius: 9999px;
+  letter-spacing: 0.2px;
 }
-.rotates-label { font-size: 10px; color: #94a3b8; }
+.rotates-label { font-size: 10px; color: #94a3b8; font-variant-numeric: tabular-nums; }
 .quote-arabic {
   font-size: 13px;
   color: #a7f3d0;
   text-align: right;
   direction: rtl;
   margin-bottom: 4px;
+  line-height: 1.4;
 }
 .quote-bengali {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11.5px;
+  line-height: 1.45;
   color: #f8fafc;
   font-weight: 500;
 }
@@ -54,27 +66,29 @@ body {
 .status-strip {
   display: flex;
   justify-content: space-between;
-  padding: 8px 14px;
-  font-size: 11px;
+  padding: 7px 14px;
+  font-size: 10.5px;
   color: #94a3b8;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: #050b0e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-.provider-badge { color: #34d399; }
+.provider-badge { color: #34d399; font-weight: 600; }
 
 .hero-waqt {
   padding: 12px 14px;
-  background: #0f172a;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, #091519 0%, #060e12 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 .waqt-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 11.5px;
   color: #cbd5e1;
   margin-bottom: 4px;
 }
+.waqt-meta strong { color: #34d399; font-weight: 700; }
 .countdown-large {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 700;
   color: #f8fafc;
   letter-spacing: -0.5px;
@@ -82,7 +96,7 @@ body {
 .progress-bar-bg {
   width: 100%;
   height: 4px;
-  background: #1e293b;
+  background: #15272a;
   border-radius: 9999px;
   margin-top: 8px;
   overflow: hidden;
@@ -98,51 +112,145 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  background: rgba(5,150,105,0.1);
-  border-bottom: 1px solid rgba(16,185,129,0.2);
+  padding: 8px 14px;
+  background: rgba(6, 78, 59, 0.18);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
 }
 .tahajjud-title { font-size: 11px; font-weight: 600; color: #34d399; }
-.tahajjud-sub { font-size: 10px; color: #94a3b8; margin-top: 2px; }
-.tahajjud-timer { font-size: 14px; font-weight: 700; color: #34d399; }
+.tahajjud-sub { font-size: 9.5px; color: #94a3b8; margin-top: 1px; }
+.tahajjud-timer { font-size: 13px; font-weight: 700; color: #34d399; }
 
+/* 6 Prayer Cards Grid with Start and Limit */
 .prayers-list {
   padding: 10px 14px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
 }
 .prayer-card {
-  background: #131c2e;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: #0d1a20;
+  border: 1px solid #162c33;
+  border-radius: 9px;
+  padding: 7px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: 11.5px;
+  transition: all 0.15s ease;
 }
 .prayer-card.active {
   border-color: #10b981;
-  background: rgba(5,150,105,0.15);
+  background: rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
 }
-.prayer-card .time { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #34d399; }
-
-.footer {
-  padding: 8px 14px;
+.prayer-card .card-name {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.prayer-card .card-times {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.prayer-card .time {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #34d399;
+  font-size: 12px;
+}
+.prayer-card .limit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+/* Dual Actions matching user screenshot */
+.dashboard-actions {
+  padding: 10px 14px 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  border-top: 1px solid rgba(255,255,255,0.06);
 }
 .btn {
-  flex: 1;
-  background: #1e293b;
-  color: #cbd5e1;
-  border: 1px solid #334155;
-  border-radius: 6px;
-  padding: 6px;
-  font-size: 11px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  font-family: inherit;
 }
-.btn:hover { background: #334155; color: #fff; }
+.btn-dashboard {
+  background: #10b981;
+  color: #022c22;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+.btn-dashboard:hover {
+  background: #34d399;
+  transform: translateY(-1px);
+}
+.btn-settings {
+  background: #0f1c22;
+  color: #e2e8f0;
+  border: 1px solid #1b333d;
+}
+.btn-settings:hover {
+  background: #172c35;
+  color: #ffffff;
+  border-color: #2b4b57;
+}
+
+/* Location line matching user screenshot: ✦ Chattogram, Bangladesh (Asia/Dhaka) */
+.location-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 14px 8px;
+  font-size: 10.5px;
+  color: #64748b;
+  text-align: center;
+}
+.sparkle-icon {
+  color: #10b981;
+  font-size: 11px;
+}
+
+/* Footer bottom bar */
+.footer {
+  padding: 8px 14px 10px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: #060c0e;
+}
+.btn-focus {
+  flex: 2;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.btn-focus:hover {
+  background: rgba(16, 185, 129, 0.25);
+  color: #fff;
+}
+.btn-subtle {
+  flex: 1;
+  background: #0f171b;
+  border: 1px solid #1a2a32;
+  color: #94a3b8;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.btn-subtle:hover {
+  background: #16242a;
+  color: #f1f5f9;
+}

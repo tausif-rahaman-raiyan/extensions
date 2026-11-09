@@ -76,26 +76,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div>
           <div className="p-5 border-b border-slate-800 dark:border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Crescent & Golden Star Icon */}
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#152820] to-[#08100C] border border-emerald-500/40 flex items-center justify-center relative shadow-sm">
-                <svg viewBox="0 0 128 128" className="w-6 h-6">
-                  <path
-                    d="M78 24 C46 24 22 48 22 80 C22 104 38 114 54 114 C36 102 34 76 52 52 C64 36 78 30 78 24 Z"
-                    fill="#34D399"
-                  />
-                  <polygon
-                    transform="translate(80, 52) scale(0.9)"
-                    points="0,-18 5,-6 18,-5 8,4 12,16 0,9 -12,16 -8,4 -18,-5 -5,-6"
-                    fill="#F59E0B"
-                  />
-                </svg>
+              {/* Sujud under Crescent Moon Icon */}
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#152820] to-[#08100C] border border-emerald-500/40 p-1 flex items-center justify-center relative shadow-sm overflow-hidden">
+                <img
+                  src="/icons/app-logo.png"
+                  alt="Prayer Focus"
+                  className="w-full h-full object-contain"
+                />
               </div>
 
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-sm text-slate-100 tracking-tight">Prayer Focus</span>
                   <span className="text-[10px] bg-emerald-500/15 text-emerald-300 px-1.5 py-0.2 rounded font-mono">
-                    v2.2.21
+                    v2.2.23
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-400">Islamic Productivity</div>

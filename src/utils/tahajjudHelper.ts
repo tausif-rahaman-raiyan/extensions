@@ -1,4 +1,4 @@
-import { PrayerTimes, NextPrayerInfo } from '../types/prayer';
+import { PrayerTimes, NextPrayerInfo, WaqtWindow, WaqtStatus } from '../types/prayer';
 
 /**
  * Format 24h time "HH:mm" to 12h time with AM/PM
@@ -143,14 +143,14 @@ export function getTahajjudStatus(times: PrayerTimes, now: Date = new Date()): T
     };
   }
 
-  // 4. DAYTIME (after Fajr until Maghrib, e.g. 05:00 to 18:00): Upcoming tonight
+  // 4. DAYTIME (Between Fajr and Maghrib): Countdown to tonight's Tahajjud window
   const targetDate = getDateWithHours(now, tahajjudStartVal, 1);
   const remainingSec = Math.max(0, Math.floor((targetDate.getTime() - nowMs) / 1000));
 
   return {
     isActive: false,
-    statusText: "Tonight's Tahajjud Window (Last Third)",
-    subText: `Time until tonight's prime window: ${formatRemainingTime(remainingSec)}`,
+    statusText: 'Daytime — Tonight’s Tahajjud window starts late night',
+    subText: `Countdown to Last Third: ${formatRemainingTime(remainingSec)}`,
     targetTimeFormatted: format12HourTime(times.tahajjudStart),
     secondsRemaining: remainingSec,
     phase: 'daytime_upcoming',
@@ -162,7 +162,7 @@ export function getTahajjudStatus(times: PrayerTimes, now: Date = new Date()): T
 }
 
 /**
- * Determine Next Prayer and Current Waqt
+ * Get next upcoming prayer with precise remaining seconds and progress
  */
 export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextPrayerInfo {
   const currentHours = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
@@ -174,17 +174,16 @@ export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextP
 
   const prayers = [
     { name: 'Fajr', nameEn: 'Fajr', val: parseHHMM(times.fajr), hhmm: times.fajr },
-    { name: 'Sunrise', nameEn: 'Sunrise (Ishraq)', val: parseHHMM(times.sunrise), hhmm: times.sunrise },
+    { name: 'Sunrise', nameEn: 'Sunrise', val: parseHHMM(times.sunrise), hhmm: times.sunrise },
     { name: 'Dhuhr', nameEn: 'Dhuhr', val: parseHHMM(times.dhuhr), hhmm: times.dhuhr },
     { name: 'Asr', nameEn: 'Asr', val: parseHHMM(times.asr), hhmm: times.asr },
     { name: 'Maghrib', nameEn: 'Maghrib', val: parseHHMM(times.maghrib), hhmm: times.maghrib },
     { name: 'Isha', nameEn: 'Isha', val: parseHHMM(times.isha), hhmm: times.isha }
   ];
 
-  // Current Waqt identification
   let currentWaqtNameEn = 'Isha / Night';
   if (currentHours < prayers[0].val) {
-    currentWaqtNameEn = 'Tahajjud & Suhur';
+    currentWaqtNameEn = 'Pre-Dawn / Tahajjud';
   } else if (currentHours < prayers[1].val) {
     currentWaqtNameEn = 'Fajr Period';
   } else if (currentHours < prayers[2].val) {
@@ -246,4 +245,166 @@ export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextP
     currentWaqtNameEn: 'Isha / Night',
     progressPercent
   };
+}
+
+/**
+ * Returns full start-to-end windows for each waqt, with automatic status:
+ * - 'finished': user checked as prayed
+ * - 'missed': waqt end time has passed without being prayed
+ * - 'active': currently inside this waqt
+ * - 'upcoming': waqt is in the future
+ */
+export function getDailyWaqtWindows(
+  times: PrayerTimes,
+  completedPrayers: Record<string, boolean> = {},
+  now: Date = new Date()
+): WaqtWindow[] {
+  const currentHours = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+
+  const parseHHMM = (hhmm: string): number => {
+    if (!hhmm) return 0;
+    const [h, m] = hhmm.split(':').map(Number);
+    return (h || 0) + (m || 0) / 60;
+  };
+
+  const fajrVal = parseHHMM(times.fajr);
+  const sunriseVal = parseHHMM(times.sunrise);
+  const dhuhrVal = parseHHMM(times.dhuhr);
+  const asrVal = parseHHMM(times.asr);
+  const maghribVal = parseHHMM(times.maghrib);
+  const ishaVal = parseHHMM(times.isha);
+  const tahajjudVal = parseHHMM(times.tahajjudStart);
+
+  const determineStatus = (
+    startVal: number,
+    endVal: number,
+    key: string,
+    crossesMidnight: boolean = false
+  ): { status: WaqtStatus; label: string } => {
+    const isDone = !!completedPrayers[key];
+    if (isDone) {
+      return { status: 'finished', label: 'Finished' };
+    }
+
+    let isActive = false;
+    let isPassed = false;
+
+    if (!crossesMidnight) {
+      if (currentHours >= startVal && currentHours < endVal) {
+        isActive = true;
+      } else if (currentHours >= endVal) {
+        isPassed = true;
+      }
+    } else {
+      // Overnight (e.g. Isha: starts at ishaVal ~18:34, ends at fajrVal ~04:56 next morning)
+      if (currentHours >= startVal || currentHours < endVal) {
+        isActive = true;
+      } else if (currentHours >= endVal && currentHours < startVal) {
+        isPassed = true;
+      }
+    }
+
+    if (isActive) {
+      return { status: 'active', label: 'Active Now' };
+    }
+    if (isPassed) {
+      return { status: 'missed', label: 'Unfinished' };
+    }
+    return { status: 'upcoming', label: 'Upcoming' };
+  };
+
+  const fajrStat = determineStatus(fajrVal, sunriseVal, 'fajr');
+  const sunriseStat = determineStatus(sunriseVal, dhuhrVal, 'sunrise');
+  const dhuhrStat = determineStatus(dhuhrVal, asrVal, 'dhuhr');
+  const asrStat = determineStatus(asrVal, maghribVal, 'asr');
+  const maghribStat = determineStatus(maghribVal, ishaVal, 'maghrib');
+  const ishaStat = determineStatus(ishaVal, fajrVal, 'isha', true);
+  const tahajjudStat = determineStatus(tahajjudVal, fajrVal, 'tahajjud', false);
+
+  return [
+    {
+      key: 'fajr',
+      nameEn: 'Fajr',
+      nameBn: 'ফজর',
+      arabic: 'الفجر',
+      startTime: times.fajr,
+      endTime: times.sunrise,
+      isCompleted: !!completedPrayers['fajr'],
+      status: fajrStat.status,
+      statusLabel: fajrStat.label,
+      isPrayer: true
+    },
+    {
+      key: 'sunrise',
+      nameEn: 'Sunrise (Ishraq)',
+      nameBn: 'সূর্যোদয় (ইশরাক)',
+      arabic: 'الشروق',
+      startTime: times.sunrise,
+      endTime: times.dhuhr,
+      isCompleted: !!completedPrayers['sunrise'],
+      status: sunriseStat.status,
+      statusLabel: sunriseStat.label,
+      isPrayer: false
+    },
+    {
+      key: 'dhuhr',
+      nameEn: 'Dhuhr',
+      nameBn: 'যোহর',
+      arabic: 'الظهر',
+      startTime: times.dhuhr,
+      endTime: times.asr,
+      isCompleted: !!completedPrayers['dhuhr'],
+      status: dhuhrStat.status,
+      statusLabel: dhuhrStat.label,
+      isPrayer: true
+    },
+    {
+      key: 'asr',
+      nameEn: 'Asr',
+      nameBn: 'আসর',
+      arabic: 'العصر',
+      startTime: times.asr,
+      endTime: times.maghrib,
+      isCompleted: !!completedPrayers['asr'],
+      status: asrStat.status,
+      statusLabel: asrStat.label,
+      isPrayer: true
+    },
+    {
+      key: 'maghrib',
+      nameEn: 'Maghrib',
+      nameBn: 'মাগরিব',
+      arabic: 'المغرب',
+      startTime: times.maghrib,
+      endTime: times.isha,
+      isCompleted: !!completedPrayers['maghrib'],
+      status: maghribStat.status,
+      statusLabel: maghribStat.label,
+      isPrayer: true
+    },
+    {
+      key: 'isha',
+      nameEn: 'Isha',
+      nameBn: 'এশা',
+      arabic: 'العشاء',
+      startTime: times.isha,
+      endTime: times.fajr,
+      isCompleted: !!completedPrayers['isha'],
+      status: ishaStat.status,
+      statusLabel: ishaStat.label,
+      isPrayer: true
+    },
+    {
+      key: 'tahajjud',
+      nameEn: 'Tahajjud (Qiyam)',
+      nameBn: 'তাহাজ্জুদ',
+      arabic: 'التهجد',
+      startTime: times.tahajjudStart,
+      endTime: times.fajr,
+      isCompleted: !!completedPrayers['tahajjud'],
+      status: tahajjudStat.status,
+      statusLabel: tahajjudStat.label,
+      isPrayer: true
+    }
+  ];
 }

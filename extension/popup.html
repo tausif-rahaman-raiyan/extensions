@@ -11,7 +11,10 @@
   <!-- Top Bengali Wisdom Banner (Hourly rotation) -->
   <header class="quote-banner">
     <div class="quote-header">
-      <span class="badge">Islamic Wisdom</span>
+      <div class="quote-header-title">
+        <img src="icons/icon16.png" class="brand-logo-icon" alt="Prayer Focus" />
+        <span class="badge">Islamic Wisdom</span>
+      </div>
       <span class="rotates-label" id="quoteTimer">Rotates hourly</span>
     </div>
     <p class="quote-arabic font-arabic" id="quoteArabic"></p>
@@ -19,7 +22,7 @@
     <div class="quote-ref" id="quoteRef"></div>
   </header>
 
-  <!-- Location & Provider Status Strip -->
+  <!-- Status Bar -->
   <div class="status-strip">
     <div class="loc" id="locationLabel">Chattogram (22.35°N, 91.78°E)</div>
     <div class="provider-badge" id="providerLabel">AlAdhan · Online</div>
@@ -37,24 +40,50 @@
     </div>
   </section>
 
-  <!-- Tahajjud Live Status -->
+  <!-- Tahajjud Status -->
   <section class="tahajjud-box">
     <div>
-      <div class="tahajjud-title">Tahajjud & Last Third of Night</div>
+      <div class="tahajjud-title">Tahajjud (Last Third of Night)</div>
       <div class="tahajjud-sub" id="tahajjudStatus">Tonight's window starts at --:--</div>
     </div>
     <div class="tahajjud-timer font-mono" id="tahajjudCountdown">--:--:--</div>
   </section>
 
-  <!-- 6 Prayer Times Grid -->
+  <!-- 6 Prayer Times Cards with Start & Limit -->
   <section class="prayers-list" id="prayersList">
-    <!-- Populated dynamically -->
+    <!-- Populated dynamically: 5:45 AM with Limit: 7:01 AM etc. -->
   </section>
 
-  <!-- Footer Actions -->
+  <!-- Action Section Matching User Image: [Open Dashboard ↗] and [⚙ Settings] -->
+  <div class="dashboard-actions">
+    <button class="btn btn-dashboard" id="openDashboardBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+      <span>Open Dashboard ↗</span>
+    </button>
+    <button class="btn btn-settings" id="openSettingsBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      <span>Settings</span>
+    </button>
+  </div>
+
+  <!-- Location line matching user image: ✦ Chattogram, Bangladesh (Asia/Dhaka) -->
+  <div class="location-line">
+    <span class="sparkle-icon">✦</span>
+    <span id="locationFooterText">Chattogram, Bangladesh (Asia/Dhaka)</span>
+  </div>
+
+  <!-- Secondary Tab Quick Actions -->
   <footer class="footer">
-    <button class="btn" id="refreshBtn">Refresh</button>
-    <button class="btn" id="settingsBtn">Settings</button>
+    <button class="btn btn-focus" id="focusWebBtn">✧ Focus Mode (5m)</button>
+    <button class="btn btn-subtle" id="refreshBtn">↻ Refresh</button>
   </footer>
 
   <script src="popup.js"></script>

@@ -8,6 +8,7 @@ import {
   Check,
   Activity,
   AlertTriangle,
+  AlertCircle,
   Sparkles,
   RefreshCw,
   Bookmark,
@@ -21,7 +22,8 @@ import {
   format12HourTime,
   formatCountdownDigital,
   getTahajjudStatus,
-  getNextPrayer
+  getNextPrayer,
+  getDailyWaqtWindows
 } from '../utils/tahajjudHelper';
 
 interface MiniWidgetProps {
@@ -36,6 +38,7 @@ interface MiniWidgetProps {
   isBookmarked: boolean;
   onToggleBookmark: (id: string) => void;
   onOpenFullDashboard: () => void;
+  onOpenSettings?: () => void;
   onOpenLocationModal: () => void;
   onOpenProviderModal: () => void;
   currentTime: Date;
@@ -53,6 +56,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
   isBookmarked,
   onToggleBookmark,
   onOpenFullDashboard,
+  onOpenSettings,
   onOpenLocationModal,
   onOpenProviderModal,
   currentTime
@@ -60,6 +64,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
   const [copied, setCopied] = useState(false);
   const nextPrayer = getNextPrayer(times, currentTime);
   const tahajjud = getTahajjudStatus(times, currentTime);
+  const waqtWindows = getDailyWaqtWindows(times, completedPrayers, currentTime);
 
   const handleCopyQuote = () => {
     const text = `${hourlyQuote.arabic ? `${hourlyQuote.arabic}\n\n` : ''}${hourlyQuote.bengali}\n\n— ${hourlyQuote.reference}${hourlyQuote.narratorBn ? ` (${hourlyQuote.narratorBn})` : ''}`;
@@ -68,17 +73,9 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const sitpHealth = providerStatus['sitp'];
-  const hasSitp502 = sitpHealth?.status === 'offline_502' || sitpHealth?.status === 'cooldown';
   const activeProviderHealth = providerStatus[currentProvider];
 
   const getStatusBadge = () => {
-    if (hasSitp502 && currentProvider !== 'sitp') {
-      return {
-        label: '502 Cooldown (Safe)',
-        cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-      };
-    }
     if (activeProviderHealth?.status === 'operational') {
       return {
         label: 'Live Sync',
@@ -98,19 +95,9 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
   };
 
   const statusBadge = getStatusBadge();
-
-  const prayerItems = [
-    { key: 'fajr', labelEn: 'Fajr', timeStr: times.fajr, isPrayer: true },
-    { key: 'sunrise', labelEn: 'Sunrise (Ishraq)', timeStr: times.sunrise, isPrayer: false },
-    { key: 'dhuhr', labelEn: 'Dhuhr', timeStr: times.dhuhr, isPrayer: true },
-    { key: 'asr', labelEn: 'Asr', timeStr: times.asr, isPrayer: true },
-    { key: 'maghrib', labelEn: 'Maghrib', timeStr: times.maghrib, isPrayer: true },
-    { key: 'isha', labelEn: 'Isha', timeStr: times.isha, isPrayer: true },
-    { key: 'tahajjud', labelEn: 'Tahajjud', timeStr: times.tahajjudStart, isPrayer: true }
-  ];
-
-  const countablePrayers = prayerItems.filter(p => p.isPrayer);
-  const completedCount = countablePrayers.filter(p => completedPrayers[p.key]).length;
+  const countablePrayers = waqtWindows.filter((p) => p.isPrayer);
+  const completedCount = countablePrayers.filter((p) => p.isCompleted).length;
+  const missedCount = countablePrayers.filter((p) => p.status === 'missed').length;
   const minutesUntilNextHour = 60 - currentTime.getMinutes();
 
   return (
@@ -139,7 +126,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
         </blockquote>
 
         <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[11px]">
-          <span className="font-bengali text-emerald-400 font-semibold">
+          <span className="font-bengali text-emerald-400 font-semibold truncate max-w-[200px]">
             — {hourlyQuote.reference}
           </span>
           <div className="flex items-center gap-2">
@@ -225,22 +212,6 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
         </div>
       </div>
 
-      {/* SITP 502 Cooldown / Fallback notice */}
-      {hasSitp502 && (
-        <div className="px-3.5 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-300 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 truncate">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="truncate">SITP 502 Detected → Auto Fallback Active</span>
-          </div>
-          <button
-            onClick={onOpenProviderModal}
-            className="underline hover:text-amber-100 shrink-0 ml-1"
-          >
-            Details
-          </button>
-        </div>
-      )}
-
       {/* Hero Next Prayer Counter */}
       <div className="p-4 bg-gradient-to-b from-slate-900 to-slate-950/60 border-b border-slate-800/80">
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
@@ -292,61 +263,59 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
         </div>
       </div>
 
-      {/* Prayer Times Quick Table (Includes Sunrise & 5 Waqts + Tahajjud) */}
+      {/* Prayer Windows Table with Start-to-End Time & Finished/Missed Status */}
       <div className="p-3">
         <div className="flex items-center justify-between text-xs text-slate-400 mb-2 px-1">
           <span>Daily Prayer Tracker</span>
-          <span className="text-[11px] text-emerald-400 font-mono-numbers">
-            {completedCount} of {countablePrayers.length} Completed
-          </span>
+          <div className="flex items-center gap-2 font-mono-numbers text-[11px]">
+            <span className="text-emerald-400 font-semibold">{completedCount}/{countablePrayers.length} Done</span>
+            {missedCount > 0 && <span className="text-rose-400 font-semibold">({missedCount} Missed)</span>}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5">
-          {prayerItems.map((p) => {
-            const isDone = !!completedPrayers[p.key];
-            const isCurrent = nextPrayer.nameEn === p.labelEn;
-
-            if (!p.isPrayer) {
-              // Sunrise row
-              return (
-                <div
-                  key={p.key}
-                  className="flex items-center justify-between p-2 rounded-lg border bg-amber-500/5 border-amber-500/20 text-amber-200/90"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Sunrise className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="text-xs font-medium">Sunrise</span>
-                  </div>
-                  <span className="text-xs font-mono-numbers">
-                    {format12HourTime(p.timeStr)}
-                  </span>
-                </div>
-              );
-            }
+        <div className="space-y-1.5">
+          {waqtWindows.map((w) => {
+            const isClickable = w.isPrayer;
 
             return (
               <div
-                key={p.key}
-                onClick={() => onTogglePrayer(p.key)}
-                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors border ${
-                  isCurrent
+                key={w.key}
+                onClick={() => {
+                  if (isClickable) onTogglePrayer(w.key);
+                }}
+                className={`flex items-center justify-between p-2 rounded-lg border transition-colors ${
+                  isClickable ? 'cursor-pointer' : 'cursor-default'
+                } ${
+                  w.status === 'finished'
                     ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
-                    : isDone
-                    ? 'bg-slate-800/40 border-slate-800 text-slate-400 line-through'
-                    : 'bg-slate-800/20 border-slate-800/60 text-slate-200 hover:bg-slate-800/50'
+                    : w.status === 'missed'
+                    ? 'bg-rose-950/20 border-rose-500/40 text-rose-300'
+                    : w.status === 'active'
+                    ? 'bg-amber-950/25 border-amber-500/50 text-amber-200'
+                    : 'bg-slate-800/20 border-slate-800/60 text-slate-200 hover:bg-slate-800/40'
                 }`}
               >
-                <div className="flex items-center gap-1.5">
-                  {isDone ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 min-w-0">
+                  {isClickable ? (
+                    w.isCompleted ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : w.status === 'missed' ? (
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    )
                   ) : (
-                    <Circle className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <Sunrise className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   )}
-                  <span className="text-xs font-medium">{p.labelEn}</span>
+                  <span className="text-xs font-medium truncate">{w.nameEn}</span>
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">({w.statusLabel})</span>
                 </div>
-                <span className="text-xs font-mono-numbers">
-                  {format12HourTime(p.timeStr)}
-                </span>
+
+                <div className="flex items-center gap-2 font-mono-numbers text-xs">
+                  <span className="text-[11px] text-slate-400">
+                    {format12HourTime(w.startTime)} – {format12HourTime(w.endTime)}
+                  </span>
+                </div>
               </div>
             );
           })}
