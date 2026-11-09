@@ -1,54 +1,34 @@
-# Developer Profile & Author Showcase Addition for README.md
+# Replace Author Emoji with Profile Picture Avatar in README.md
 
-Add a dedicated **Developer / Author Showcase** section at the bottom of `README.md` introducing **Tausif Rahaman Raiyan**, detailing his background, bio, personal portfolio website link, and Instagram profile link with visual social icon badges.
+Replace the `👨‍💻` emoji in the **Author & Developer** section of `README.md` with the user's uploaded profile picture avatar (`public/assets/aistudio/IMG_20251115_151413-modified_0410127b.png`).
 
 ---
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The user requested the following addition to `README.md`:
-> - **Author Name**: Tausif Rahaman Raiyan
-> - **Bio Quote**:
->   > *"Tausif Rahaman Raiyan, a university admission candidate with a deep passion for web development, technology, and problem-solving. I enjoy transforming creative ideas into practical projects, exploring new technologies, and building digital experiences that are both meaningful and useful. For me, programming is more than just writing code; it is a way to think creatively, overcome challenges, and turn imagination into reality."*
-> - **Personal Portfolio Website Link**: `https://tausif-rahaman-raiyan.github.io/`
-> - **Instagram Profile Link with Icon**: `https://www.instagram.com/tausifrahamanraiyan/`
+> - **Avatar Image**: `public/assets/aistudio/IMG_20251115_151413-modified_0410127b.png`
+> - **Placement**:
+>   - Replace the default `👨‍💻` emoji in the heading and showcase card with an inline circular `<img />` profile avatar.
+>   - Embed a crisp 90px circular avatar right above/alongside **Designed & Developed by Tausif Rahaman Raiyan**.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Enhances the project `README.md` by appending an attractive **Developer / Author Showcase Card** at the bottom of the document.
-- **Visual Design**: Uses a clean HTML card layout with stylized markdown blockquotes, visual badge links for Personal Portfolio and Instagram, and clean typography.
+- **Goal**: Give the Author & Developer section a personalized, professional look by using Tausif's circular profile photo instead of a generic emoji.
+- **Visual Presentation**:
+  ```html
+  <img src="public/assets/aistudio/IMG_20251115_151413-modified_0410127b.png" alt="Tausif Rahaman Raiyan" width="90" height="90" style="border-radius: 50%;" />
+  ```
 
 ---
 
-## 2. User Experience & Visual Layout
+## 2. Implementation Steps
 
-The new section will be placed right before the License section at the bottom of `README.md`:
+1. **Update `/README.md`**:
+   - Replace `## 👨‍💻 Author & Developer` with `<h2 align="center"><img src="public/assets/aistudio/IMG_20251115_151413-modified_0410127b.png" width="36" height="36" style="vertical-align: middle; border-radius: 50%; margin-right: 8px;" /> Author & Developer</h2>`.
+   - Also place a high-resolution 90px circular avatar inside the centered Author Card above **Designed & Developed by Tausif Rahaman Raiyan**.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  👨‍💻 Author & Developer Showcase                                      │
-├────────────────────────────────────────────────────────────────────────┤
-│  Made with ❤️ by Tausif Rahaman Raiyan                                │
-│                                                                        │
-│  "Tausif Rahaman Raiyan, a university admission candidate with a deep   │
-│  passion for web development..."                                       │
-│                                                                        │
-│  [🌐 Personal Website] (https://tausif-rahaman-raiyan.github.io/)      │
-│  [📸 Instagram Profile] (https://www.instagram.com/tausifrahamanraiyan/)│
-└────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 3. Implementation Steps
-
-1. **Update `README.md`**:
-   - Append a styled `## 👨‍💻 Author & Developer` section at the end of `/README.md`.
-   - Embed the full bio in a clean blockquote card.
-   - Add shield/badge links for the Portfolio Website (`https://tausif-rahaman-raiyan.github.io/`) and Instagram Profile (`https://www.instagram.com/tausifrahamanraiyan/`).
-
-2. **Rebuild & Pack Extension**:
-   - Run `npm run build && node scripts/pack-extension.js` to refresh the distribution ZIP (`Prayer-Focus-v2.2.23-Fixed.zip`).
+2. **Re-pack Extension Package**:
+   - Execute `npm run build && node scripts/pack-extension.js` to ensure the updated `README.md` and assets are synced into `Prayer-Focus-v2.2.23-Fixed.zip`.

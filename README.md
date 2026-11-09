@@ -209,9 +209,11 @@ npm run build && node scripts/pack-extension.js
 
 ---
 
-## 👨‍💻 Author & Developer
+## <img src="public/assets/aistudio/IMG_20251115_151413-modified_0410127b.png" width="32" height="32" style="vertical-align: middle; border-radius: 50%;" /> Author & Developer
 
 <div align="center">
+
+<img src="public/assets/aistudio/IMG_20251115_151413-modified_0410127b.png" alt="Tausif Rahaman Raiyan" width="96" height="96" style="border-radius: 50%; border: 3px solid #10b981; margin-bottom: 8px;" />
 
 ### Designed & Developed by **Tausif Rahaman Raiyan**
 
