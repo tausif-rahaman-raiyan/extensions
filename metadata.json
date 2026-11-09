@@ -1,0 +1,6 @@
+{
+  "name": "Daily Islamic Wisdom & Prayer Focus",
+  "description": "দৈনিক ইসলামিক জ্ঞান, বিশুদ্ধ হাদিস, সঠিক সালাত ও তাহাজ্জুদ সময়সূচী এবং বহুবিধ প্রোভাইডার নির্ভর নির্ভুল ইসলামিক অ্যাপ্লিকেশন।",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

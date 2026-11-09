@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prayer Focus</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Hind+Siliguri:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Bengali Wisdom Banner (Hourly rotation) -->
+  <header class="quote-banner">
+    <div class="quote-header">
+      <span class="badge">Islamic Wisdom</span>
+      <span class="rotates-label" id="quoteTimer">Rotates hourly</span>
+    </div>
+    <p class="quote-arabic font-arabic" id="quoteArabic"></p>
+    <blockquote class="quote-bengali font-bengali" id="quoteBengali"></blockquote>
+    <div class="quote-ref" id="quoteRef"></div>
+  </header>
+
+  <!-- Location & Provider Status Strip -->
+  <div class="status-strip">
+    <div class="loc" id="locationLabel">Chattogram (22.35°N, 91.78°E)</div>
+    <div class="provider-badge" id="providerLabel">AlAdhan · Online</div>
+  </div>
+
+  <!-- Hero Next Prayer Countdown -->
+  <section class="hero-waqt">
+    <div class="waqt-meta">
+      <span>Next Prayer: <strong id="nextPrayerName">Asr</strong></span>
+      <span id="nextPrayerTime">--:--</span>
+    </div>
+    <div class="countdown-large font-mono" id="countdownVal">00:00:00</div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </section>
+
+  <!-- Tahajjud Live Status -->
+  <section class="tahajjud-box">
+    <div>
+      <div class="tahajjud-title">Tahajjud & Last Third of Night</div>
+      <div class="tahajjud-sub" id="tahajjudStatus">Tonight's window starts at --:--</div>
+    </div>
+    <div class="tahajjud-timer font-mono" id="tahajjudCountdown">--:--:--</div>
+  </section>
+
+  <!-- 6 Prayer Times Grid -->
+  <section class="prayers-list" id="prayersList">
+    <!-- Populated dynamically -->
+  </section>
+
+  <!-- Footer Actions -->
+  <footer class="footer">
+    <button class="btn" id="refreshBtn">Refresh</button>
+    <button class="btn" id="settingsBtn">Settings</button>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

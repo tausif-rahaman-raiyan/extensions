@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-bengali: 'Hind Siliguri', 'Plus Jakarta Sans', sans-serif;
+    --font-arabic: 'Amiri', serif;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Light Theme (Default fallback) */
+    --bg-canvas: #F6F8F5;
+    --bg-surface: #FFFFFF;
+    --bg-surface-subtle: #EEF3EE;
+    --text-primary: #18251F;
+    --text-secondary: #728078;
+    --color-emerald: #16845B;
+    --color-emerald-light: #E3F3EA;
+    --color-gold: #C59B52;
+    --border-subtle: #E4EBE5;
+  }
+
+  .dark {
+    /* Dark Midnight Theme */
+    --bg-canvas: #101A17;
+    --bg-surface: #1B2B24;
+    --bg-surface-subtle: #15231E;
+    --text-primary: #F0F5F1;
+    --text-secondary: #A1B1A7;
+    --color-emerald: #48B889;
+    --color-emerald-light: #244B38;
+    --color-gold: #D6B46F;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+}
+
+.font-arabic {
+  font-family: var(--font-arabic);
+}
+
+.font-bengali {
+  font-family: var(--font-bengali);
+}
+
+.font-mono-numbers {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle arabesque geometric pattern */
+.bg-islamic-pattern {
+  background-image: radial-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px),
+                    radial-gradient(rgba(16, 185, 129, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+}
+
+.bg-islamic-pattern-light {
+  background-image: radial-gradient(rgba(22, 132, 91, 0.08) 1px, transparent 1px),
+                    radial-gradient(rgba(22, 132, 91, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+}
