@@ -71,15 +71,27 @@ async function buildZip() {
   const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
   if (!fs.existsSync('./public')) fs.mkdirSync('./public', { recursive: true });
 
-  // v2.2.23-Fixed
+  // Save latest zip file
   fs.writeFileSync('./public/Prayer-Focus-v2.2.23-Fixed.zip', buffer);
   fs.writeFileSync('./Prayer-Focus-v2.2.23-Fixed.zip', buffer);
+  if (fs.existsSync(distDir)) {
+    fs.writeFileSync(path.join(distDir, 'Prayer-Focus-v2.2.23-Fixed.zip'), buffer);
+  }
 
-  // Backward compatibility aliases
-  fs.writeFileSync('./public/Prayer-Focus-v2.2.22-Fixed.zip', buffer);
-  fs.writeFileSync('./Prayer-Focus-v2.2.22-Fixed.zip', buffer);
-  fs.writeFileSync('./public/Prayer-Focus-v2.2.21-Fixed.zip', buffer);
-  fs.writeFileSync('./Prayer-Focus-v2.2.21-Fixed.zip', buffer);
+  // Clean up any older zip files in root, public, and dist
+  const oldZips = [
+    './Prayer-Focus-v2.2.21-Fixed.zip',
+    './Prayer-Focus-v2.2.22-Fixed.zip',
+    './public/Prayer-Focus-v2.2.21-Fixed.zip',
+    './public/Prayer-Focus-v2.2.22-Fixed.zip',
+    './dist/Prayer-Focus-v2.2.21-Fixed.zip',
+    './dist/Prayer-Focus-v2.2.22-Fixed.zip'
+  ];
+  oldZips.forEach((p) => {
+    if (fs.existsSync(p)) {
+      try { fs.unlinkSync(p); } catch (e) {}
+    }
+  });
 
   console.log(`✓ Successfully created Prayer-Focus-v2.2.23-Fixed.zip (size: ${buffer.length} bytes)`);
 }

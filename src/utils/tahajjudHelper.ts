@@ -14,6 +14,16 @@ export function format12HourTime(hhmm: string): string {
 }
 
 /**
+ * Formats a Date to local YYYY-MM-DD string without UTC conversion offset bugs
+ */
+export function formatLocalYYYYMMDD(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * Format remaining seconds into "Xh Ym Zs"
  */
 export function formatRemainingTime(totalSec: number): string {

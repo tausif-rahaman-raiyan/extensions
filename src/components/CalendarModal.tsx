@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Grid, List } from 'lucide-react';
 import { LocationInfo, JuristicMethod } from '../types/prayer';
 import { calculateAstronomicalTimes } from '../services/astronomicalCalculator';
-import { format12HourTime, getDailyWaqtWindows } from '../utils/tahajjudHelper';
+import { format12HourTime, getDailyWaqtWindows, formatLocalYYYYMMDD } from '../utils/tahajjudHelper';
 
 interface CalendarModalProps {
   isOpen: boolean;
@@ -52,15 +52,19 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({
 
   const fardKeys = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
   // Generate padded days array
   const paddingCells = Array.from({ length: firstDayIndex });
   const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
     const dayNum = i + 1;
     const d = new Date(year, month, dayNum);
-    const dateStr = d.toISOString().split('T')[0];
+    const dayStart = d.getTime();
+    const dateStr = formatLocalYYYYMMDD(d);
+
     const isToday = dayNum === now.getDate() && month === now.getMonth() && year === now.getFullYear();
-    const isPast = d < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const isFuture = d > new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const isPast = dayStart < todayStart;
+    const isFuture = dayStart > todayStart;
 
     const times = calculateAstronomicalTimes(d, location.lat, location.lng, 6, juristic);
 
@@ -277,7 +281,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({
                       <div key={w.key} className="p-2 rounded-xl bg-[#081711] border border-[#163a2d]">
                         <div className="font-bold text-slate-200">{w.nameEn}</div>
                         <div className="text-emerald-400">{format12HourTime(w.startTime)}</div>
-                        <div className="text-[10px] text-slate-400">Limit: {format12HourTime(w.endTime)}</div>
+                        <div className="text-[10px] text-slate-400">Till: {format12HourTime(w.endTime)}</div>
                       </div>
                     ))}
                   </div>

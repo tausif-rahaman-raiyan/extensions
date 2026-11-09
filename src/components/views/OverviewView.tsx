@@ -202,7 +202,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                     {format12HourTime(card.timeStr)}
                   </div>
                   <div className="text-[11px] font-mono-numbers text-slate-400 mt-0.5">
-                    Limit: {format12HourTime(card.endTimeStr)}
+                    Till: {format12HourTime(card.endTimeStr)}
                   </div>
                   {w && (
                     <div className="mt-2">

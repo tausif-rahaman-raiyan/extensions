@@ -28,6 +28,7 @@ import { ProviderModal } from './components/ProviderModal';
 import { LocationModal } from './components/LocationModal';
 import { QuoteCardModal } from './components/QuoteCardModal';
 import { CalendarModal } from './components/CalendarModal';
+import { formatLocalYYYYMMDD } from './utils/tahajjudHelper';
 
 export default function App() {
   // 1. Clock state (single interval ticker)
@@ -148,7 +149,7 @@ export default function App() {
   );
 
   // 9. Completed prayers tracker (persisted daily)
-  const todayKey = new Date().toISOString().split('T')[0];
+  const todayKey = formatLocalYYYYMMDD(new Date());
   const [completedPrayers, setCompletedPrayers] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem(`prayer_focus_completed_${todayKey}`);
@@ -193,7 +194,7 @@ export default function App() {
       }
 
       // Midnight date check
-      const currentDayKey = now.toISOString().split('T')[0];
+      const currentDayKey = formatLocalYYYYMMDD(now);
       if (currentDayKey !== prevDateRef.current) {
         prevDateRef.current = currentDayKey;
         setCompletedPrayers({});

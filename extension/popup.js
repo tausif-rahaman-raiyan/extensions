@@ -224,7 +224,7 @@ function renderPrayerCards(timings, completedPrayers = {}) {
       </div>
       <div class="card-times">
         <span class="time">${format12Hour(c.startStr)}</span>
-        <span class="limit">Limit: ${format12Hour(c.limitStr)}</span>
+        <span class="limit">Till: ${format12Hour(c.limitStr)}</span>
       </div>
     `;
     list.appendChild(card);

@@ -161,7 +161,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({
                     {format12HourTime(w.startTime)}
                   </div>
                   <div className="text-[11px] font-mono-numbers text-slate-400 mt-0.5">
-                    Limit: <strong className="text-slate-300">{format12HourTime(w.endTime)}</strong>
+                    Till: <strong className="text-slate-300">{format12HourTime(w.endTime)}</strong>
                   </div>
 
                   <div className="mt-2">

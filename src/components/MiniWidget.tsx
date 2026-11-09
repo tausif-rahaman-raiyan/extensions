@@ -257,7 +257,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
 
                 <div className="flex items-center gap-2 font-mono-numbers text-xs">
                   <span className="text-[11px] text-slate-400">
-                    {format12HourTime(w.startTime)} – {format12HourTime(w.endTime)}
+                    {format12HourTime(w.startTime)} · Till: {format12HourTime(w.endTime)}
                   </span>
                 </div>
               </div>
