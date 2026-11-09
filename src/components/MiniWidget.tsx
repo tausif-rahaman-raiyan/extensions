@@ -15,7 +15,8 @@ import {
   BookmarkCheck,
   Sunrise,
   ShieldCheck,
-  Database
+  Database,
+  Settings
 } from 'lucide-react';
 import { PrayerTimes, LocationInfo, ProviderId, ProviderHealth, IslamicQuote } from '../types/prayer';
 import {
@@ -127,7 +128,7 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
             </div>
             <button
               onClick={onOpenLocationModal}
-              className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 text-left"
+              className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 text-left cursor-pointer"
             >
               <span className="truncate max-w-[120px] font-medium">{location.nameEn}</span>
               <span className="text-slate-500">·</span>
@@ -263,6 +264,45 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* Bottom Actions: [Open Dashboard ↗], [Settings], Location line, and Full-Width Refresh */}
+      <div className="p-3 pt-1 space-y-2 border-t border-slate-800/80 bg-slate-950/40">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={onOpenFullDashboard}
+            className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+            <span>Open Dashboard ↗</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (onOpenSettings) onOpenSettings();
+              else onOpenFullDashboard();
+            }}
+            className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Settings className="w-3.5 h-3.5 text-slate-400" />
+            <span>Settings</span>
+          </button>
+        </div>
+
+        {/* Location Subtitle Line */}
+        <div className="flex items-center justify-center gap-1 text-[10.5px] text-slate-400 font-medium text-center py-0.5">
+          <span className="text-emerald-400 text-xs">✦</span>
+          <span>{location.nameEn}, {location.country} ({location.timezone})</span>
+        </div>
+
+        {/* Full-Width Refresh Button */}
+        <button
+          onClick={onOpenProviderModal}
+          className="w-full py-2 px-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+          <span>↻ Refresh</span>
+        </button>
       </div>
     </div>
   );

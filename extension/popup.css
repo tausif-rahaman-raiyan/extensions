@@ -226,31 +226,27 @@ body {
 .footer {
   padding: 8px 14px 10px;
   display: flex;
-  gap: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   background: #060c0e;
 }
-.btn-focus {
-  flex: 2;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #34d399;
-  padding: 7px 10px;
-  font-size: 11px;
-}
-.btn-focus:hover {
-  background: rgba(16, 185, 129, 0.25);
-  color: #fff;
-}
-.btn-subtle {
-  flex: 1;
+.btn-refresh-full {
+  width: 100%;
   background: #0f171b;
   border: 1px solid #1a2a32;
   color: #94a3b8;
-  padding: 7px 10px;
-  font-size: 11px;
+  padding: 8px 12px;
+  font-size: 11.5px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
 }
-.btn-subtle:hover {
+.btn-refresh-full:hover {
   background: #16242a;
   color: #f1f5f9;
+  border-color: #2b4b57;
 }

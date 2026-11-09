@@ -252,22 +252,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (providerLabel) providerLabel.textContent = updated.provider + ' · Online';
     });
   }
-
-  // Focus mode trigger on active web tab
-  const focusBtn = document.getElementById('focusWebBtn');
-  if (focusBtn) {
-    focusBtn.addEventListener('click', async () => {
-      try {
-        if (typeof chrome !== 'undefined' && chrome.tabs) {
-          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (tab?.id) {
-            chrome.tabs.sendMessage(tab.id, { action: 'OPEN_FOCUS_MODE', prayerName: 'Current' });
-            window.close();
-          }
-        }
-      } catch (e) {
-        console.warn('Could not inject focus mode on current tab:', e);
-      }
-    });
-  }
 });

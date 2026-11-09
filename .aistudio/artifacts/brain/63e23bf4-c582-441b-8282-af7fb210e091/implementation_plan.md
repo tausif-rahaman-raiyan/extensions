@@ -1,71 +1,77 @@
-# Implementation Plan: Auto-Qada Status, Clean Timetable & Refresh Feedback
+# Extension Popup & Mini Widget Controls Sync
 
-Implement automatic Qada status indicators for expired prayer windows, remove redundant bottom breakdown tables in PrayerTimesView, and provide floating toast feedback upon clicking Refresh Timings.
+Unify the bottom action controls across both the browser extension popup modal (`extension/popup.html`) and the web application's `MiniWidget.tsx` component so both render identical, functional action controls.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following user preferences were confirmed during Phase 1 interactive clarification:
-
-- **Confirmed Decision 1**: **Auto-Qada Display**: When a prayer window expires without being marked completed, display an "Unfinished (Missed)" red status badge with a prominent "Mark (Qada)" button in both Overview and Prayer Times.
-- **Confirmed Decision 2**: **Clean Single-Grid Timetable**: Remove the duplicate bottom vertical table ("Complete Waqt Windows & Night Breakdown") in `PrayerTimesView.tsx` so only the top card grid ("Daily Prayer Schedule Cards") displays the schedule and limits.
-- **Confirmed Decision 3**: **Floating Toast Feedback on Refresh**: Show a floating toast notification displaying the active provider name and status upon successful or failed timing refresh.
-
----
+> The user confirmed the following design choices via interactive clarification:
+> - **Unified Layout**: Both the Chrome Extension Popup modal and the web application's `MiniWidget.tsx` component will feature identical bottom control bars.
+> - **Action Items**:
+>   1. `[ Open Dashboard ↗ ]` green button (opens `dashboard.html` or main app view).
+>   2. `[ Settings ⚙ ]` dark button (navigates to settings view).
+>   3. `✦ Chattogram, Bangladesh (Asia/Dhaka)` dynamic location line.
+>   4. `[ ↻ Refresh ]` full-width dark action button at the bottom (removes obsolete `Focus Mode (5m)` button).
 
 ## 1. Overview & Core Concept
 
-This update streamlines `PrayerTimesView` by eliminating duplicate tables, automatically flagging expired prayer windows as Qada in Overview and Prayer Times, and adding clear toast feedback when refreshing timings.
-
----
+- **What It Does**: Standardizes the popup UI layout when clicking the extension icon in browser toolbar or opening the in-app Mini Widget modal.
+- **Key Actions**:
+  - Direct navigation to full dashboard (`dashboard.html` / `section=overview`).
+  - Direct navigation to settings (`dashboard.html?section=settings`).
+  - Live formatted location line matching active location state (`✦ Chattogram, Bangladesh (Asia/Dhaka)`).
+  - One-tap data refresh button (`↻ Refresh`) to sync prayer timings across storage.
 
 ## 2. User Experience & Visual Design
 
-- **Overview & Prayer Times Cards**:
-  - Unprayed expired prayers automatically show the red `Unfinished (Missed)` badge and `Mark (Qada)` action button.
-- **Streamlined Timetable**:
-  - `PrayerTimesView` contains a single responsive 6-card grid displaying start times, explicit limit ranges, status badges, and completion buttons.
-- **Refresh Feedback Toast**:
-  - Clicking "Refresh Timings" displays a floating toast notification in the bottom right corner (e.g. `✓ Timings refreshed successfully from AlAdhan Global Coordinates API`).
+- **Bottom Action Strip Layout**:
+  - **Primary Action Grid**: 2 equal columns:
+    - Left: Emerald gradient CTA button `[ Open Dashboard ↗ ]` (`bg-emerald-600 hover:bg-emerald-500 text-white font-semibold`).
+    - Right: Dark slate button `[ ⚙ Settings ]` (`bg-slate-900 border border-slate-800 text-slate-200 hover:text-white`).
+  - **Location Subtitle Line**: Centered small text with emerald sparkle: `✦ Chattogram, Bangladesh (Asia/Dhaka)` (`text-[11px] text-slate-400 font-medium`).
+  - **Full-Width Refresh Button**: Below location line, a full-width dark button `[ ↻ Refresh ]` (`bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 w-full py-2 rounded-xl text-xs font-semibold`).
 
----
+```
+┌────────────────────────────────────────────────────────┐
+│ [ Open Dashboard ↗ ]             [ ⚙ Settings ]        │
+├────────────────────────────────────────────────────────┤
+│           ✦ Chattogram, Bangladesh (Asia/Dhaka)        │
+├────────────────────────────────────────────────────────┤
+│                     [ ↻ Refresh ]                      │
+└────────────────────────────────────────────────────────┘
+```
 
 ## 3. Technical Architecture & Component Changes
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PRAYER TIMES VIEW ARCHITECTURE                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                       │
-      ┌────────────────────────────────┴────────────────────────────────┐
-      ▼                                                                 ▼
-┌───────────────────────────────┐                     ┌───────────────────────────────┐
-│     PrayerTimesView Cards     │                     │     Refresh Toast Feedback    │
-│ • Single 6-Card Grid          │                     │ • Floating Success/Error Toast│
-│ • Start & Limit Range         │                     │ • Displays Active Provider    │
-│ • Auto-Qada Red Status Badges │                     │ • Auto-dismiss in 3 seconds   │
-└───────────────────────────────┘                     └───────────────────────────────┘
+┌───────────────────────────┐         ┌───────────────────────────┐
+│   extension/popup.html    │         │  src/components/          │
+│   extension/popup.js      │         │  MiniWidget.tsx           │
+└─────────────┬─────────────┘         └─────────────┬─────────────┘
+              │                                     │
+              └───────────────┬─────────────────────┘
+                              ▼
+                Identical Bottom Controls:
+                - Open Dashboard ↗
+                - Settings ⚙
+                - ✦ Location line
+                - ↻ Refresh (full-width)
 ```
 
-### 1. `src/components/views/PrayerTimesView.tsx`
-- Remove lines 195–277 (`Complete Waqt Windows & Night Breakdown`).
-- Add toast message state (`toastMsg`) to `handleRefreshClick`.
-- Render a floating toast notification when refresh succeeds or fails.
+1. **`extension/popup.html` & `extension/popup.js`**:
+   - Update HTML structure: Replace footer buttons `Focus Mode (5m)` and `Refresh` with a full-width `↻ Refresh` button below the location line.
+   - Wire event handlers:
+     - `openDashboardBtn` -> opens `chrome.tabs.create({ url: 'dashboard.html' })`.
+     - `openSettingsBtn` -> opens `chrome.tabs.create({ url: 'dashboard.html?section=settings' })`.
+     - `refreshBtn` -> triggers prayer timings sync from active provider and updates popup state.
+   - Clean up top header quote/coordinate banners if requested in prior turn.
 
-### 2. `src/components/views/OverviewView.tsx`
-- Ensure cards reflect expired waqts with `Unfinished (Missed)` status badges and `Mark (Qada)` actions.
+2. **`src/components/MiniWidget.tsx`**:
+   - Add bottom controls matching `popup.html`:
+     - `onOpenFullDashboard` button.
+     - `onOpenSettings` button.
+     - Dynamic location text: `✦ {location.nameEn}, {location.country} ({location.timezone})`.
+     - Full-width `Refresh` button calling `onRefresh` handler.
 
----
-
-## 4. Implementation Steps & Verification Plan
-
-1. **`src/components/views/PrayerTimesView.tsx`**:
-   - Remove duplicate bottom table block.
-   - Add toast feedback to `handleRefreshClick`.
-
-2. **`src/components/views/OverviewView.tsx`**:
-   - Verify Qada badge and button rendering on expired waqts.
-
-3. **Build & Package**:
-   - Run `npm run build && node scripts/pack-extension.js`.
-   - Co-execute `compile_applet` and `lint_applet` to verify zero errors.
+3. **Extension Re-Packaging**:
+   - Run `npm run build && node scripts/pack-extension.js` to update `Prayer-Focus-v2.2.23-Fixed.zip`.
