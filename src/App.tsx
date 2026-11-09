@@ -15,7 +15,8 @@ import {
   ThemeMode,
   NotificationSettings,
   NavSection,
-  ManualPrayerOverrides
+  ManualPrayerOverrides,
+  PrayerMinuteOffsets
 } from './types/prayer';
 import { DEFAULT_LOCATION } from './data/locations';
 import { getHourlyQuote, ISLAMIC_QUOTES } from './data/quotes';
@@ -61,6 +62,23 @@ export default function App() {
     };
   });
 
+  // Minute Steppers offsets (+/- minutes per prayer)
+  const [minuteOffsets, setMinuteOffsets] = useState<PrayerMinuteOffsets>(() => {
+    try {
+      const saved = localStorage.getItem('prayer_focus_minute_offsets');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      fajr: 0,
+      sunrise: 0,
+      dhuhr: 0,
+      asr: 0,
+      maghrib: 0,
+      isha: 0,
+      tahajjud: 0
+    };
+  });
+
   // 3. Location state (persisted)
   const [location, setLocation] = useState<LocationInfo>(() => {
     try {
@@ -70,11 +88,10 @@ export default function App() {
     return DEFAULT_LOCATION; // Chattogram (22.3569, 91.7832)
   });
 
-  // 4. Provider settings
+  // 4. Provider settings (with verified Bangladesh defaults)
   const [preferredProvider, setPreferredProvider] = useState<ProviderId>(() => {
     const saved = localStorage.getItem('prayer_focus_provider') as string;
-    if (saved === 'sitp') return 'muslimsalat';
-    if (saved && ['aladhan', 'muslimsalat', 'islamicfinder', 'waktusolat', 'astronomical'].includes(saved)) {
+    if (saved && ['aladhan', 'aladhancity', 'habibur', 'islamicnetwork', 'prayzone', 'astronomical'].includes(saved)) {
       return saved as ProviderId;
     }
     return 'aladhan';
@@ -216,7 +233,7 @@ export default function App() {
     return () => mediaQuery.removeEventListener('change', listener);
   }, [theme]);
 
-  // Fetch prayer timings with cascading 5-provider fallback and 502 recovery
+  // Fetch prayer timings with cascading provider fallback and minute offsets
   const loadPrayerTimes = useCallback(async () => {
     try {
       const result = await PrayerService.getPrayerTimes(
@@ -225,7 +242,8 @@ export default function App() {
         preferredProvider,
         juristic,
         calcMethod,
-        manualOverrides
+        manualOverrides,
+        minuteOffsets
       );
       setTimes(result.times);
       setUsedProvider(result.usedProvider);
@@ -239,11 +257,12 @@ export default function App() {
         6,
         juristic
       );
-      const finalTimes = PrayerService.applyManualOverrides(fallbackTimes, manualOverrides);
+      let finalTimes = PrayerService.applyMinuteOffsets(fallbackTimes, minuteOffsets);
+      finalTimes = PrayerService.applyManualOverrides(finalTimes, manualOverrides);
       setTimes(finalTimes);
       setUsedProvider('astronomical');
     }
-  }, [location, preferredProvider, juristic, calcMethod, manualOverrides]);
+  }, [location, preferredProvider, juristic, calcMethod, manualOverrides, minuteOffsets]);
 
   useEffect(() => {
     loadPrayerTimes();
@@ -253,6 +272,13 @@ export default function App() {
     setManualOverrides(updated);
     try {
       localStorage.setItem('prayer_focus_manual_overrides', JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  const handleSaveMinuteOffsets = (updated: PrayerMinuteOffsets) => {
+    setMinuteOffsets(updated);
+    try {
+      localStorage.setItem('prayer_focus_minute_offsets', JSON.stringify(updated));
     } catch (e) {}
   };
 
@@ -364,6 +390,8 @@ export default function App() {
           onSelectSection={setActiveSection}
           manualOverrides={manualOverrides}
           onSaveManualOverrides={handleSaveManualOverrides}
+          minuteOffsets={minuteOffsets}
+          onSaveMinuteOffsets={handleSaveMinuteOffsets}
         />
       ) : (
         <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center p-4">

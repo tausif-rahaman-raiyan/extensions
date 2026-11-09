@@ -5,7 +5,8 @@ import {
   LocationInfo,
   JuristicMethod,
   CalculationMethod,
-  ManualPrayerOverrides
+  ManualPrayerOverrides,
+  PrayerMinuteOffsets
 } from '../types/prayer';
 import { calculateAstronomicalTimes } from './astronomicalCalculator';
 
@@ -44,14 +45,14 @@ export class PrayerService {
     },
     'aladhancity': {
       id: 'aladhancity',
-      name: 'AlAdhan City API (WaktuSolat)',
+      name: 'AlAdhan City API (Chattogram)',
       url: 'https://api.aladhan.com/v1/timingsByCity',
       status: 'operational'
     },
-    'prayzone': {
-      id: 'prayzone',
-      name: 'PrayZone Global API',
-      url: 'https://api.pray.zone/v2/times/today.json',
+    'habibur': {
+      id: 'habibur',
+      name: 'Habibur Salat API (Bangladesh)',
+      url: 'https://salat.habibur.com/api',
       status: 'operational'
     },
     'islamicnetwork': {
@@ -66,17 +67,23 @@ export class PrayerService {
       url: 'local://solar-astronomical-engine',
       status: 'operational'
     },
+    'prayzone': {
+      id: 'prayzone',
+      name: 'PrayZone Global API',
+      url: 'https://api.pray.zone/v2/times/today.json',
+      status: 'operational'
+    },
     'muslimsalat': {
       id: 'muslimsalat',
       name: 'MuslimSalat Global API',
       url: 'https://muslimsalat.com',
-      status: 'operational'
+      status: 'offline_502'
     },
     'islamicfinder': {
       id: 'islamicfinder',
       name: 'IslamicFinder Global API',
       url: 'https://www.islamicfinder.us/index.php/api/prayer_times',
-      status: 'operational'
+      status: 'offline_502'
     },
     'waktusolat': {
       id: 'waktusolat',
@@ -201,6 +208,55 @@ export class PrayerService {
   }
 
   /**
+   * Shifts a 24h time string (HH:mm) by deltaMinutes (+/-), wrapping within 24h
+   */
+  public static shiftTimeMinutes(timeStr: string, deltaMinutes: number): string {
+    if (!deltaMinutes || deltaMinutes === 0) return this.sanitizeTime(timeStr);
+    const sanitized = this.sanitizeTime(timeStr);
+    const [h, m] = sanitized.split(':').map(Number);
+    const totalMins = (h * 60 + m + deltaMinutes) % (24 * 60);
+    const wrapped = totalMins < 0 ? totalMins + 24 * 60 : totalMins;
+    const newH = Math.floor(wrapped / 60) % 24;
+    const newM = Math.floor(wrapped % 60);
+    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+  }
+
+  /**
+   * Applies user-configured +/- minute offsets to scanned API times
+   */
+  public static applyMinuteOffsets(
+    times: PrayerTimes,
+    offsets?: PrayerMinuteOffsets | null
+  ): PrayerTimes {
+    if (!offsets) return times;
+    const hasAny = Object.values(offsets).some((v) => v !== 0);
+    if (!hasAny) return times;
+
+    const fajr = offsets.fajr ? this.shiftTimeMinutes(times.fajr, offsets.fajr) : times.fajr;
+    const sunrise = offsets.sunrise ? this.shiftTimeMinutes(times.sunrise, offsets.sunrise) : times.sunrise;
+    const dhuhr = offsets.dhuhr ? this.shiftTimeMinutes(times.dhuhr, offsets.dhuhr) : times.dhuhr;
+    const asr = offsets.asr ? this.shiftTimeMinutes(times.asr, offsets.asr) : times.asr;
+    const maghrib = offsets.maghrib ? this.shiftTimeMinutes(times.maghrib, offsets.maghrib) : times.maghrib;
+    const isha = offsets.isha ? this.shiftTimeMinutes(times.isha, offsets.isha) : times.isha;
+
+    const night = this.computeNightTimes(maghrib, fajr);
+
+    return {
+      ...times,
+      fajr,
+      sunrise,
+      dhuhr,
+      asr,
+      maghrib,
+      isha,
+      midnight: night.midnight,
+      tahajjudStart: offsets.tahajjud ? this.shiftTimeMinutes(night.tahajjudStart, offsets.tahajjud) : night.tahajjudStart,
+      tahajjudEnd: night.tahajjudEnd,
+      firstThird: night.firstThird
+    };
+  }
+
+  /**
    * Apply user-defined manual prayer time overrides if enabled
    */
   public static applyManualOverrides(
@@ -303,158 +359,41 @@ export class PrayerService {
   }
 
   /**
-   * Provider 2: MuslimSalat Global API (Replaces SITP)
+   * Provider 2: AlAdhan City API (WaktuSolat / Chattogram)
    */
-  private static async fetchMuslimSalat(
-    date: Date,
-    location: LocationInfo
-  ): Promise<PrayerTimes> {
-    // Try coordinates first, then fallback to city query
-    const url = `https://muslimsalat.com/${location.lat},${location.lng}/daily.json`;
-
-    const startTime = performance.now();
-    const res = await this.fetchWithTimeout(url, 3500);
-    const latency = Math.round(performance.now() - startTime);
-
-    if (!res.ok) throw new Error(`MuslimSalat HTTP ${res.status}`);
-    const data = await res.json();
-
-    const item = data?.items?.[0] || data?.item?.[0] || data?.items || data;
-    if (!item || !item.fajr) {
-      throw new Error('MuslimSalat: Invalid response items format');
-    }
-
-    const fajr = this.sanitizeTime(item.fajr);
-    const sunrise = this.sanitizeTime(item.shurooq || item.sunrise);
-    const dhuhr = this.sanitizeTime(item.dhuhr);
-    const asr = this.sanitizeTime(item.asr);
-    const maghrib = this.sanitizeTime(item.maghrib);
-    const isha = this.sanitizeTime(item.isha);
-
-    const night = this.computeNightTimes(maghrib, fajr);
-
-    this.providerHealthMap['muslimsalat'] = {
-      id: 'muslimsalat',
-      name: 'MuslimSalat Global API',
-      url,
-      status: 'operational',
-      latencyMs: latency,
-      lastChecked: new Date().toLocaleTimeString()
-    };
-
-    return {
-      fajr,
-      sunrise,
-      dhuhr,
-      asr,
-      maghrib,
-      isha,
-      midnight: night.midnight,
-      tahajjudStart: night.tahajjudStart,
-      tahajjudEnd: night.tahajjudEnd,
-      firstThird: night.firstThird,
-      rawDate: date.toISOString().split('T')[0]
-    };
-  }
-
-  /**
-   * Provider 3: IslamicFinder Global API
-   */
-  private static async fetchIslamicFinder(
+  private static async fetchAladhanCity(
     date: Date,
     location: LocationInfo,
     juristic: JuristicMethod,
     calcMethod: CalculationMethod
   ): Promise<PrayerTimes> {
-    const tz = encodeURIComponent(location.timezone || 'Asia/Dhaka');
-    const methodNum = METHOD_MAP[calcMethod] || 1;
-    const juristicParam = juristic === 'hanafi' ? 1 : 0;
-    const url = `https://www.islamicfinder.us/index.php/api/prayer_times?latitude=${location.lat}&longitude=${location.lng}&timezone=${tz}&method=${methodNum}&juristic=${juristicParam}`;
-
-    const startTime = performance.now();
-    const res = await this.fetchWithTimeout(url, 3500);
-    const latency = Math.round(performance.now() - startTime);
-
-    if (!res.ok) throw new Error(`IslamicFinder HTTP ${res.status}`);
-    const data = await res.json();
-    const results = data?.results || data?.data || data;
-
-    if (!results || !results.Fajr) {
-      throw new Error('IslamicFinder: Malformed response format');
-    }
-
-    const fajr = this.sanitizeTime(results.Fajr);
-    const sunrise = this.sanitizeTime(results.Sunrise || results.Duha);
-    const dhuhr = this.sanitizeTime(results.Dhuhr);
-    const asr = this.sanitizeTime(results.Asr);
-    const maghrib = this.sanitizeTime(results.Maghrib);
-    const isha = this.sanitizeTime(results.Isha);
-
-    const night = this.computeNightTimes(maghrib, fajr);
-
-    this.providerHealthMap['islamicfinder'] = {
-      id: 'islamicfinder',
-      name: 'IslamicFinder Global API',
-      url,
-      status: 'operational',
-      latencyMs: latency,
-      lastChecked: new Date().toLocaleTimeString()
-    };
-
-    return {
-      fajr,
-      sunrise,
-      dhuhr,
-      asr,
-      maghrib,
-      isha,
-      midnight: night.midnight,
-      tahajjudStart: night.tahajjudStart,
-      tahajjudEnd: night.tahajjudEnd,
-      firstThird: night.firstThird,
-      rawDate: date.toISOString().split('T')[0]
-    };
-  }
-
-  /**
-   * Provider 4: WaktuSolat / AlAdhan City Alternative
-   */
-  private static async fetchWaktuSolat(
-    date: Date,
-    location: LocationInfo,
-    juristic: JuristicMethod,
-    calcMethod: CalculationMethod
-  ): Promise<PrayerTimes> {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const city = encodeURIComponent(location.nameEn.split(' ')[0] || 'Dhaka');
+    const city = encodeURIComponent(location.nameEn.split(' ')[0] || 'Chattogram');
     const country = encodeURIComponent(location.country || 'Bangladesh');
     const methodNum = METHOD_MAP[calcMethod] || 1;
     const schoolNum = juristic === 'hanafi' ? 1 : 0;
-    const url = `https://api.aladhan.com/v1/timingsByCity/${day}-${month}-${year}?city=${city}&country=${country}&method=${methodNum}&school=${schoolNum}`;
+    const url = `https://api.aladhan.com/v1/timingsByCity?city=${city}&country=${country}&method=${methodNum}&school=${schoolNum}`;
 
     const startTime = performance.now();
     const res = await this.fetchWithTimeout(url, 3500);
     const latency = Math.round(performance.now() - startTime);
 
-    if (!res.ok) throw new Error(`WaktuSolat/City HTTP ${res.status}`);
-    const data = await res.json();
-    const t = data?.data?.timings;
-    if (!t) throw new Error('WaktuSolat/City: Invalid structure');
+    if (!res.ok) throw new Error(`AlAdhan City HTTP ${res.status}`);
+    const json = await res.json();
+    const timings = json?.data?.timings;
+    if (!timings) throw new Error('AlAdhan City: Invalid structure');
 
-    const fajr = this.sanitizeTime(t.Fajr);
-    const sunrise = this.sanitizeTime(t.Sunrise);
-    const dhuhr = this.sanitizeTime(t.Dhuhr);
-    const asr = this.sanitizeTime(t.Asr);
-    const maghrib = this.sanitizeTime(t.Maghrib);
-    const isha = this.sanitizeTime(t.Isha);
+    const fajr = this.sanitizeTime(timings.Fajr);
+    const sunrise = this.sanitizeTime(timings.Sunrise);
+    const dhuhr = this.sanitizeTime(timings.Dhuhr);
+    const asr = this.sanitizeTime(timings.Asr);
+    const maghrib = this.sanitizeTime(timings.Maghrib);
+    const isha = this.sanitizeTime(timings.Isha);
 
     const night = this.computeNightTimes(maghrib, fajr);
 
-    this.providerHealthMap['waktusolat'] = {
-      id: 'waktusolat',
-      name: 'WaktuSolat API',
+    this.providerHealthMap['aladhancity'] = {
+      id: 'aladhancity',
+      name: 'AlAdhan City API (Chattogram)',
       url,
       status: 'operational',
       latencyMs: latency,
@@ -472,8 +411,183 @@ export class PrayerService {
       tahajjudStart: night.tahajjudStart,
       tahajjudEnd: night.tahajjudEnd,
       firstThird: night.firstThird,
-      rawDate: `${year}-${month}-${day}`
+      rawDate: date.toISOString().split('T')[0]
     };
+  }
+
+  /**
+   * Provider 3: Habibur Salat API (Dedicated Bangladesh Islamic Timetable)
+   */
+  private static async fetchHabibur(
+    date: Date,
+    location: LocationInfo,
+    juristic: JuristicMethod
+  ): Promise<PrayerTimes> {
+    const lat = location.lat.toFixed(4);
+    const lon = location.lng.toFixed(4);
+    const tzname = encodeURIComponent(location.timezone || 'Asia/Dhaka');
+    const url = `https://salat.habibur.com/api/?lat=${lat}&lon=${lon}&tzname=${tzname}`;
+
+    const startTime = performance.now();
+    const res = await this.fetchWithTimeout(url, 3500);
+    const latency = Math.round(performance.now() - startTime);
+
+    if (!res.ok) throw new Error(`Habibur Salat API HTTP ${res.status}`);
+    const json = await res.json();
+    const d = json?.data;
+    if (!d || !d.fajar18) throw new Error('Habibur Salat API: Invalid payload');
+
+    const fajr = this.sanitizeTime(d.fajar18.short);
+    const sunrise = this.sanitizeTime(d.rise.short);
+    const dhuhr = this.sanitizeTime(d.noon.short);
+    const asr = this.sanitizeTime(juristic === 'hanafi' && d.asar2 ? d.asar2.short : d.asar1?.short);
+    const maghrib = this.sanitizeTime(d.set?.short || d.magrib12?.short);
+    const isha = this.sanitizeTime(d.esha?.short);
+
+    const night = this.computeNightTimes(maghrib, fajr);
+
+    this.providerHealthMap['habibur'] = {
+      id: 'habibur',
+      name: 'Habibur Salat API (Bangladesh)',
+      url,
+      status: 'operational',
+      latencyMs: latency,
+      lastChecked: new Date().toLocaleTimeString()
+    };
+
+    return {
+      fajr,
+      sunrise,
+      dhuhr,
+      asr,
+      maghrib,
+      isha,
+      midnight: night.midnight,
+      tahajjudStart: night.tahajjudStart,
+      tahajjudEnd: night.tahajjudEnd,
+      firstThird: night.firstThird,
+      rawDate: date.toISOString().split('T')[0]
+    };
+  }
+
+  /**
+   * Provider 4: Islamic Network API (Address & Region Engine)
+   */
+  private static async fetchIslamicNetwork(
+    date: Date,
+    location: LocationInfo,
+    juristic: JuristicMethod,
+    calcMethod: CalculationMethod
+  ): Promise<PrayerTimes> {
+    const address = encodeURIComponent(`${location.nameEn}, ${location.country}`);
+    const methodNum = METHOD_MAP[calcMethod] || 1;
+    const schoolNum = juristic === 'hanafi' ? 1 : 0;
+    const url = `https://api.aladhan.com/v1/timingsByAddress?address=${address}&method=${methodNum}&school=${schoolNum}`;
+
+    const startTime = performance.now();
+    const res = await this.fetchWithTimeout(url, 3500);
+    const latency = Math.round(performance.now() - startTime);
+
+    if (!res.ok) throw new Error(`Islamic Network HTTP ${res.status}`);
+    const json = await res.json();
+    const timings = json?.data?.timings;
+    if (!timings) throw new Error('Islamic Network: Invalid timings');
+
+    const fajr = this.sanitizeTime(timings.Fajr);
+    const sunrise = this.sanitizeTime(timings.Sunrise);
+    const dhuhr = this.sanitizeTime(timings.Dhuhr);
+    const asr = this.sanitizeTime(timings.Asr);
+    const maghrib = this.sanitizeTime(timings.Maghrib);
+    const isha = this.sanitizeTime(timings.Isha);
+
+    const night = this.computeNightTimes(maghrib, fajr);
+
+    this.providerHealthMap['islamicnetwork'] = {
+      id: 'islamicnetwork',
+      name: 'Islamic Network API',
+      url,
+      status: 'operational',
+      latencyMs: latency,
+      lastChecked: new Date().toLocaleTimeString()
+    };
+
+    return {
+      fajr,
+      sunrise,
+      dhuhr,
+      asr,
+      maghrib,
+      isha,
+      midnight: night.midnight,
+      tahajjudStart: night.tahajjudStart,
+      tahajjudEnd: night.tahajjudEnd,
+      firstThird: night.firstThird,
+      rawDate: date.toISOString().split('T')[0]
+    };
+  }
+
+  /**
+   * Provider 5: PrayZone Global API
+   */
+  private static async fetchPrayZone(
+    date: Date,
+    location: LocationInfo
+  ): Promise<PrayerTimes> {
+    const city = encodeURIComponent(location.nameEn.split(' ')[0] || 'Chattogram');
+    const url = `https://api.pray.zone/v2/times/today.json?city=${city}`;
+
+    const startTime = performance.now();
+    try {
+      const res = await this.fetchWithTimeout(url, 3000);
+      const latency = Math.round(performance.now() - startTime);
+
+      if (!res.ok) throw new Error(`PrayZone HTTP ${res.status}`);
+      const json = await res.json();
+      const t = json?.results?.datetime?.[0]?.times;
+      if (!t || !t.Fajr) throw new Error('PrayZone: Invalid times payload');
+
+      const fajr = this.sanitizeTime(t.Fajr);
+      const sunrise = this.sanitizeTime(t.Sunrise);
+      const dhuhr = this.sanitizeTime(t.Dhuhr);
+      const asr = this.sanitizeTime(t.Asr);
+      const maghrib = this.sanitizeTime(t.Maghrib);
+      const isha = this.sanitizeTime(t.Isha);
+
+      const night = this.computeNightTimes(maghrib, fajr);
+
+      this.providerHealthMap['prayzone'] = {
+        id: 'prayzone',
+        name: 'PrayZone Global API',
+        url,
+        status: 'operational',
+        latencyMs: latency,
+        lastChecked: new Date().toLocaleTimeString()
+      };
+
+      return {
+        fajr,
+        sunrise,
+        dhuhr,
+        asr,
+        maghrib,
+        isha,
+        midnight: night.midnight,
+        tahajjudStart: night.tahajjudStart,
+        tahajjudEnd: night.tahajjudEnd,
+        firstThird: night.firstThird,
+        rawDate: date.toISOString().split('T')[0]
+      };
+    } catch (err: any) {
+      this.providerHealthMap['prayzone'] = {
+        id: 'prayzone',
+        name: 'PrayZone Global API',
+        url,
+        status: 'error',
+        lastChecked: new Date().toLocaleTimeString(),
+        errorMessage: err?.message || 'Host connection timeout'
+      };
+      throw err;
+    }
   }
 
   /**
@@ -500,7 +614,7 @@ export class PrayerService {
   }
 
   /**
-   * Main entry point with request deduplication and 5-provider fallback
+   * Main entry point with request deduplication and cascading provider fallback
    */
   public static async getPrayerTimes(
     date: Date,
@@ -508,7 +622,8 @@ export class PrayerService {
     preferredProvider: ProviderId = 'aladhan',
     juristic: JuristicMethod = 'hanafi',
     calcMethod: CalculationMethod = 'karachi',
-    manualOverrides?: ManualPrayerOverrides | null
+    manualOverrides?: ManualPrayerOverrides | null,
+    minuteOffsets?: PrayerMinuteOffsets | null
   ): Promise<FetchPrayerResult> {
     const dateStr = date.toISOString().split('T')[0];
     const dedupeKey = `${dateStr}_${location.lat.toFixed(2)}_${location.lng.toFixed(2)}_${preferredProvider}_${juristic}_${calcMethod}`;
@@ -516,9 +631,11 @@ export class PrayerService {
     // 1. Check in-flight duplicate request
     if (this.inFlightRequests.has(dedupeKey)) {
       const existing = await this.inFlightRequests.get(dedupeKey)!;
+      let times = this.applyMinuteOffsets(existing.times, minuteOffsets);
+      times = this.applyManualOverrides(times, manualOverrides);
       return {
         ...existing,
-        times: this.applyManualOverrides(existing.times, manualOverrides)
+        times
       };
     }
 
@@ -528,9 +645,11 @@ export class PrayerService {
 
     try {
       const result = await fetchPromise;
+      let times = this.applyMinuteOffsets(result.times, minuteOffsets);
+      times = this.applyManualOverrides(times, manualOverrides);
       return {
         ...result,
-        times: this.applyManualOverrides(result.times, manualOverrides)
+        times
       };
     } finally {
       this.inFlightRequests.delete(dedupeKey);
@@ -545,13 +664,14 @@ export class PrayerService {
     calcMethod: CalculationMethod,
     dateStr: string
   ): Promise<FetchPrayerResult> {
-    // Build cascading priority list with MuslimSalat
+    // Cascading candidate order prioritizing selected provider and verified Bangladesh endpoints
     const candidateOrder: ProviderId[] = [
       preferredProvider,
       'aladhan',
-      'muslimsalat',
-      'islamicfinder',
-      'waktusolat',
+      'aladhancity',
+      'habibur',
+      'islamicnetwork',
+      'prayzone',
       'astronomical'
     ];
 
@@ -571,12 +691,14 @@ export class PrayerService {
         let times: PrayerTimes;
         if (provider === 'aladhan') {
           times = await this.fetchAladhan(date, location, juristic, calcMethod);
-        } else if (provider === 'muslimsalat') {
-          times = await this.fetchMuslimSalat(date, location);
-        } else if (provider === 'islamicfinder') {
-          times = await this.fetchIslamicFinder(date, location, juristic, calcMethod);
-        } else if (provider === 'waktusolat') {
-          times = await this.fetchWaktuSolat(date, location, juristic, calcMethod);
+        } else if (provider === 'aladhancity') {
+          times = await this.fetchAladhanCity(date, location, juristic, calcMethod);
+        } else if (provider === 'habibur') {
+          times = await this.fetchHabibur(date, location, juristic);
+        } else if (provider === 'islamicnetwork') {
+          times = await this.fetchIslamicNetwork(date, location, juristic, calcMethod);
+        } else if (provider === 'prayzone') {
+          times = await this.fetchPrayZone(date, location);
         } else {
           times = this.calculateAstronomical(date, location, juristic);
         }
@@ -649,24 +771,31 @@ export class PrayerService {
     }
 
     try {
-      await this.fetchMuslimSalat(now, location);
+      await this.fetchAladhanCity(now, location, juristic, calcMethod);
     } catch (e: any) {
-      this.providerHealthMap['muslimsalat'].status = 'error';
-      this.providerHealthMap['muslimsalat'].errorMessage = e?.message;
+      this.providerHealthMap['aladhancity'].status = 'error';
+      this.providerHealthMap['aladhancity'].errorMessage = e?.message;
     }
 
     try {
-      await this.fetchIslamicFinder(now, location, juristic, calcMethod);
+      await this.fetchHabibur(now, location, juristic);
     } catch (e: any) {
-      this.providerHealthMap['islamicfinder'].status = 'error';
-      this.providerHealthMap['islamicfinder'].errorMessage = e?.message;
+      this.providerHealthMap['habibur'].status = 'error';
+      this.providerHealthMap['habibur'].errorMessage = e?.message;
     }
 
     try {
-      await this.fetchWaktuSolat(now, location, juristic, calcMethod);
+      await this.fetchIslamicNetwork(now, location, juristic, calcMethod);
     } catch (e: any) {
-      this.providerHealthMap['waktusolat'].status = 'error';
-      this.providerHealthMap['waktusolat'].errorMessage = e?.message;
+      this.providerHealthMap['islamicnetwork'].status = 'error';
+      this.providerHealthMap['islamicnetwork'].errorMessage = e?.message;
+    }
+
+    try {
+      await this.fetchPrayZone(now, location);
+    } catch (e: any) {
+      this.providerHealthMap['prayzone'].status = 'error';
+      this.providerHealthMap['prayzone'].errorMessage = e?.message;
     }
 
     this.calculateAstronomical(now, location, juristic);

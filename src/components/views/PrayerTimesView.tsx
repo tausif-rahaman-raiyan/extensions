@@ -40,20 +40,44 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({
   onOpenCalendarModal
 }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
 
   const handleRefreshClick = async () => {
     setRefreshing(true);
     try {
       await onRefresh();
+      setToast({
+        message: `✓ Timings refreshed successfully from ${providerStatus[currentProvider]?.name || 'AlAdhan API'}`,
+        isError: false
+      });
+    } catch (err: any) {
+      setToast({
+        message: `✕ Failed to refresh timings: ${err?.message || 'Sync failed'}`,
+        isError: true
+      });
     } finally {
       setTimeout(() => setRefreshing(false), 500);
+      setTimeout(() => setToast(null), 4000);
     }
   };
 
   const waqtWindows = getDailyWaqtWindows(times, completedPrayers, new Date());
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Toast Feedback Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold flex items-center gap-2 transition-all animate-bounce ${
+            toast.isError
+              ? 'bg-rose-950 border-rose-500/60 text-rose-200'
+              : 'bg-emerald-950 border-emerald-500/60 text-emerald-200'
+          }`}
+        >
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -101,60 +125,71 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({
         </div>
       </div>
 
-      {/* Full Vertical Schedule Table with Start to End Windows */}
-      <div className="rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden divide-y divide-slate-800/80">
-        {waqtWindows.map((item) => {
-          const isDone = item.isCompleted;
+      {/* Box-Style Cards Grid with Explicit Time Limits */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-100">Daily Prayer Schedule Cards</h2>
+          <span className="text-xs text-slate-400">Juristic: {juristic === 'hanafi' ? 'Hanafi (2x)' : "Shafi'i (1x)"}</span>
+        </div>
 
-          return (
-            <div
-              key={item.key}
-              className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-800/30 transition-colors ${
-                item.status === 'active' ? 'bg-emerald-950/20' : ''
-              }`}
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base font-bold text-slate-100">{item.nameEn}</span>
-                  <span className="text-xs text-slate-400 font-bengali">({item.nameBn})</span>
-                  <span className="font-arabic text-sm text-emerald-400/90">{item.arabic}</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ml-1 ${
-                      item.status === 'finished'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        : item.status === 'missed'
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                        : item.status === 'active'
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
-                        : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}
-                  >
-                    {item.statusLabel}
-                  </span>
-                </div>
-                <div className="text-xs text-slate-400 flex items-center gap-1.5 font-mono-numbers">
-                  <Clock className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Window:</span>
-                  <strong className="text-slate-200">
-                    {format12HourTime(item.startTime)} – {format12HourTime(item.endTime)}
-                  </strong>
-                </div>
-              </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {waqtWindows.filter(w => w.key !== 'tahajjud').map((w) => {
+            const isDone = w.isCompleted;
+            const isClickable = w.isPrayer;
 
-              <div className="flex items-center gap-4 self-start sm:self-center">
-                <div className="text-2xl font-bold font-mono-numbers text-emerald-400">
-                  {format12HourTime(item.startTime)}
+            return (
+              <div
+                key={w.key}
+                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+                  w.status === 'active'
+                    ? 'bg-emerald-950/30 border-emerald-500/60 shadow-lg ring-1 ring-emerald-500/30'
+                    : w.status === 'finished'
+                    ? 'bg-emerald-950/20 border-emerald-500/30'
+                    : w.status === 'missed'
+                    ? 'bg-rose-950/20 border-rose-500/30'
+                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-100">{w.nameEn}</span>
+                    <span className="font-arabic text-xs text-slate-400">{w.arabic}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-bengali">({w.nameBn})</div>
+
+                  <div className="text-xl font-bold font-mono-numbers text-emerald-400 mt-2">
+                    {format12HourTime(w.startTime)}
+                  </div>
+                  <div className="text-[11px] font-mono-numbers text-slate-400 mt-0.5">
+                    Limit: <strong className="text-slate-300">{format12HourTime(w.endTime)}</strong>
+                  </div>
+
+                  <div className="mt-2">
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full font-semibold border ${
+                        w.status === 'finished'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : w.status === 'missed'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                          : w.status === 'active'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {w.statusLabel}
+                    </span>
+                  </div>
                 </div>
 
-                {item.isPrayer && (
+                {isClickable && (
                   <button
-                    onClick={() => onTogglePrayer(item.key)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    onClick={() => onTogglePrayer(w.key)}
+                    className={`mt-3 w-full py-1.5 px-2 rounded-lg border text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                       isDone
-                        ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
-                        : item.status === 'missed'
-                        ? 'bg-rose-950/30 border-rose-500/40 text-rose-300 hover:bg-rose-900/40'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                        ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-300'
+                        : w.status === 'missed'
+                        ? 'bg-rose-950/40 border-rose-500/50 text-rose-300 hover:bg-rose-900/50'
+                        : 'bg-slate-950/60 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
                     }`}
                   >
                     {isDone ? (
@@ -162,23 +197,23 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Finished</span>
                       </>
-                    ) : item.status === 'missed' ? (
+                    ) : w.status === 'missed' ? (
                       <>
                         <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                         <span>Mark (Qada)</span>
                       </>
                     ) : (
                       <>
-                        <Circle className="w-3.5 h-3.5" />
-                        <span>Mark Done</span>
+                        <Circle className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Mark</span>
                       </>
                     )}
                   </button>
                 )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Moon,
   Clock,
@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { IslamicQuote } from '../types/prayer';
 import { format12HourTime } from '../utils/tahajjudHelper';
+import { ISLAMIC_QUOTES } from '../data/quotes';
+import { startLoopingChime } from '../utils/soundHelper';
 
 interface PrayerReminderModalProps {
   isOpen: boolean;
@@ -19,10 +21,9 @@ interface PrayerReminderModalProps {
   prayerNameBn?: string;
   startTime: string;
   endTime: string;
-  quote: IslamicQuote;
+  quote?: IslamicQuote;
   onPrayed: () => void;
   onRemindLater: () => void;
-  onOpenFocusMode: () => void;
 }
 
 export const PrayerReminderModal: React.FC<PrayerReminderModalProps> = ({
@@ -32,12 +33,33 @@ export const PrayerReminderModal: React.FC<PrayerReminderModalProps> = ({
   prayerNameBn,
   startTime,
   endTime,
-  quote,
+  quote: initialQuote,
   onPrayed,
-  onRemindLater,
-  onOpenFocusMode
+  onRemindLater
 }) => {
+  const [randomQuote, setRandomQuote] = useState<IslamicQuote>(() => {
+    return initialQuote || ISLAMIC_QUOTES[Math.floor(Math.random() * ISLAMIC_QUOTES.length)];
+  });
+
+  // Pick a fresh random quote and start audio loop on modal open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Pick random quote from 60+ quote dataset
+    const freshQuote = ISLAMIC_QUOTES[Math.floor(Math.random() * ISLAMIC_QUOTES.length)];
+    setRandomQuote(freshQuote);
+
+    // Loop adhan chime audio until user clicks Prayed or Pray Later
+    const stopAudio = startLoopingChime();
+
+    return () => {
+      stopAudio();
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const displayQuote = randomQuote || initialQuote || ISLAMIC_QUOTES[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
@@ -90,22 +112,22 @@ export const PrayerReminderModal: React.FC<PrayerReminderModalProps> = ({
                 <span>Daily Islamic Wisdom</span>
               </span>
               <span className="text-[11px] text-slate-400 font-bengali">
-                — {quote.reference}
+                — {displayQuote.reference}
               </span>
             </div>
 
-            {quote.arabic && (
+            {displayQuote.arabic && (
               <p className="font-arabic text-sm text-emerald-200 text-right dir-rtl leading-relaxed" dir="rtl">
-                {quote.arabic}
+                {displayQuote.arabic}
               </p>
             )}
 
             <blockquote className="font-bengali text-xs sm:text-sm text-slate-100 leading-relaxed font-medium italic border-l-2 border-emerald-500 pl-3">
-              "{quote.bengali}"
+              "{displayQuote.bengali}"
             </blockquote>
           </div>
 
-          {/* 3 Action Options */}
+          {/* Action Options */}
           <div className="space-y-2 pt-2">
             {/* Option 1: Prayed */}
             <button
@@ -116,21 +138,12 @@ export const PrayerReminderModal: React.FC<PrayerReminderModalProps> = ({
               <span>Prayed (সালাত আদায় করেছি)</span>
             </button>
 
-            {/* Option 2: Focus Mode (5 min) */}
-            <button
-              onClick={onOpenFocusMode}
-              className="w-full py-3 px-4 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 font-semibold text-xs active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Maximize2 className="w-4 h-4 text-emerald-400" />
-              <span>Focus Mode for 5 min (৫ মিনিটের ফোকাস স্ক্রিন)</span>
-            </button>
-
-            {/* Option 3: Pray Later & Remind in 10 min */}
+            {/* Option 2: Pray Later & Remind in 10 min */}
             <button
               onClick={onRemindLater}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-amber-300 border border-amber-500/40 text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Hourglass className="w-3.5 h-3.5 text-amber-400" />
+              <Hourglass className="w-4 h-4 text-amber-400" />
               <span>Pray later (Remind me in 10 minutes)</span>
             </button>
           </div>

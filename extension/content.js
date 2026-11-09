@@ -60,9 +60,6 @@ function showPrayerReminder(data) {
           <button class="pf-btn pf-btn-primary" id="pf-btn-prayed">
             ✓ Prayed (সালাত আদায় করেছি)
           </button>
-          <button class="pf-btn pf-btn-focus" id="pf-btn-focus">
-            ✧ Focus Mode for 5 min (ফোকাস স্ক্রিন)
-          </button>
           <button class="pf-btn pf-btn-later" id="pf-btn-later">
             ⏰ Pray later (Remind in 10 minutes)
           </button>
@@ -81,10 +78,6 @@ function showPrayerReminder(data) {
   document.getElementById('pf-btn-later')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'SNOOZE_REMINDER', prayerName, minutes: 10 });
     removeExistingModals();
-  });
-
-  document.getElementById('pf-btn-focus')?.addEventListener('click', () => {
-    showFocusMode(prayerName);
   });
 }
 

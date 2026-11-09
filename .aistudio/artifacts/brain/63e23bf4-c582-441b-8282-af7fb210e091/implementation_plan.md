@@ -1,66 +1,71 @@
-# Implementation Plan: Prayer Focus v2.2.23
+# Implementation Plan: Auto-Qada Status, Clean Timetable & Refresh Feedback
 
-Implement new Sujud icon everywhere, update 5-tier working API providers, add direct manual prayer time overrides in Settings, show time limits in Overview, and ensure error-free GitHub Actions extension builds.
+Implement automatic Qada status indicators for expired prayer windows, remove redundant bottom breakdown tables in PrayerTimesView, and provide floating toast feedback upon clicking Refresh Timings.
 
----
+## User Review & Critical Decisions
 
-## 1. Icon Replacement: Use `islamic.png` Everywhere
-- User uploaded asset: `/public/assets/aistudio/islamic_031b4178.png` (Sujud / prostration under crescent moon).
-- Resize and copy this image to:
-  - `public/icons/icon128.png`, `public/icons/icon48.png`, `public/icons/icon16.png`
-  - `extension/icons/icon128.png`, `extension/icons/icon48.png`, `extension/icons/icon16.png`
-  - Web favicon in `index.html`
-- Replace SVG graphics in the UI with this official logo:
-  - `Sidebar.tsx` brand header
-  - `MiniWidget.tsx` header
-  - `AboutView.tsx` hero showcase
-  - `extension/popup.html` and `popup.css`
+> [!IMPORTANT]
+> The following user preferences were confirmed during Phase 1 interactive clarification:
+
+- **Confirmed Decision 1**: **Auto-Qada Display**: When a prayer window expires without being marked completed, display an "Unfinished (Missed)" red status badge with a prominent "Mark (Qada)" button in both Overview and Prayer Times.
+- **Confirmed Decision 2**: **Clean Single-Grid Timetable**: Remove the duplicate bottom vertical table ("Complete Waqt Windows & Night Breakdown") in `PrayerTimesView.tsx` so only the top card grid ("Daily Prayer Schedule Cards") displays the schedule and limits.
+- **Confirmed Decision 3**: **Floating Toast Feedback on Refresh**: Show a floating toast notification displaying the active provider name and status upon successful or failed timing refresh.
 
 ---
 
-## 2. 5-Tier Working API Engine (Completely Eliminating SITP)
-- Selected by user:
-  1. **AlAdhan Global Coordinates API**: `https://api.aladhan.com/v1/timings` (Primary)
-  2. **AlAdhan City-Based API (WaktuSolat)**: `https://api.aladhan.com/v1/timingsByCity` (Secondary)
-  3. **PrayZone API**: `https://api.pray.zone/v2/times/today.json` (Tertiary)
-  4. **Islamic Network API**: `https://api.aladhan.com/v1/calendarByCity` / `https://api.aladhan.com/v1/timingsByAddress` (Backup)
-  5. **Local Astronomical Solar Engine**: 100% offline Jean Meeus equations (Guaranteed zero-network fallback)
-- Fix client-side CORS issues in web diagnostics by ensuring every endpoint supports browser CORS or falls back gracefully without console errors.
-- Update `ProviderHealthView.tsx`, `ProviderModal.tsx`, `SettingsView.tsx`, and `prayerApi.ts`.
+## 1. Overview & Core Concept
+
+This update streamlines `PrayerTimesView` by eliminating duplicate tables, automatically flagging expired prayer windows as Qada in Overview and Prayer Times, and adding clear toast feedback when refreshing timings.
 
 ---
 
-## 3. Direct Manual Prayer Time Overrides in Settings
-- Add **Manual Prayer Time Adjustment** section in Settings:
-  - Toggle: "Enable Manual Prayer Overrides"
-  - Inputs: Direct time pickers/entry for each prayer:
-    - Fajr: `HH:mm` (e.g. `04:45`)
-    - Sunrise: `HH:mm` (e.g. `06:01`)
-    - Dhuhr: `HH:mm` (e.g. `11:37`)
-    - Asr: `HH:mm` (e.g. `15:36`)
-    - Maghrib: `HH:mm` (e.g. `17:12`)
-    - Isha: `HH:mm` (e.g. `18:28`)
-    - Tahajjud: `HH:mm` (optional custom start)
-  - Action buttons: "Save Custom Times", "Revert to API Times".
-  - Persisted in `localStorage('prayer_focus_manual_overrides')`.
-  - When enabled, prayer calculations and displays prioritize the manual times while preserving night divisions.
+## 2. User Experience & Visual Design
+
+- **Overview & Prayer Times Cards**:
+  - Unprayed expired prayers automatically show the red `Unfinished (Missed)` badge and `Mark (Qada)` action button.
+- **Streamlined Timetable**:
+  - `PrayerTimesView` contains a single responsive 6-card grid displaying start times, explicit limit ranges, status badges, and completion buttons.
+- **Refresh Feedback Toast**:
+  - Clicking "Refresh Timings" displays a floating toast notification in the bottom right corner (e.g. `✓ Timings refreshed successfully from AlAdhan Global Coordinates API`).
 
 ---
 
-## 4. Show Waqt Time Limits in Overview View
-- In `OverviewView.tsx` Daily Prayer Schedule:
-  - Display the full start-to-end time limit for each prayer (e.g. Fajr: `04:45 AM – 06:01 AM`, Dhuhr: `11:37 AM – 03:36 PM`, etc.).
-  - Add active and finished badges so users immediately see how much time remains in the current waqt.
+## 3. Technical Architecture & Component Changes
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PRAYER TIMES VIEW ARCHITECTURE                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                       │
+      ┌────────────────────────────────┴────────────────────────────────┐
+      ▼                                                                 ▼
+┌───────────────────────────────┐                     ┌───────────────────────────────┐
+│     PrayerTimesView Cards     │                     │     Refresh Toast Feedback    │
+│ • Single 6-Card Grid          │                     │ • Floating Success/Error Toast│
+│ • Start & Limit Range         │                     │ • Displays Active Provider    │
+│ • Auto-Qada Red Status Badges │                     │ • Auto-dismiss in 3 seconds   │
+└───────────────────────────────┘                     └───────────────────────────────┘
+```
+
+### 1. `src/components/views/PrayerTimesView.tsx`
+- Remove lines 195–277 (`Complete Waqt Windows & Night Breakdown`).
+- Add toast message state (`toastMsg`) to `handleRefreshClick`.
+- Render a floating toast notification when refresh succeeds or fails.
+
+### 2. `src/components/views/OverviewView.tsx`
+- Ensure cards reflect expired waqts with `Unfinished (Missed)` status badges and `Mark (Qada)` actions.
 
 ---
 
-## 5. GitHub Actions CI Workflow Hardening (`.github/workflows/build-extension.yml`)
-- Ensure the workflow runs on Node 22 with `--legacy-peer-deps`.
-- Verify packaging of all extension files (including new `icon16.png`, `icon48.png`, `icon128.png`, `content.js`, `content.css`).
-- Produce `Prayer-Focus-v2.2.23-Fixed.zip`.
+## 4. Implementation Steps & Verification Plan
 
----
+1. **`src/components/views/PrayerTimesView.tsx`**:
+   - Remove duplicate bottom table block.
+   - Add toast feedback to `handleRefreshClick`.
 
-## 6. Verification
-- Validate extension syntax with `node --check`.
-- Co-execute `compile_applet` and `lint_applet` together to verify 0 errors.
+2. **`src/components/views/OverviewView.tsx`**:
+   - Verify Qada badge and button rendering on expired waqts.
+
+3. **Build & Package**:
+   - Run `npm run build && node scripts/pack-extension.js`.
+   - Co-execute `compile_applet` and `lint_applet` to verify zero errors.

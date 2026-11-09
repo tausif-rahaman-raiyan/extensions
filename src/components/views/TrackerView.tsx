@@ -36,10 +36,10 @@ export const TrackerView: React.FC<TrackerViewProps> = ({
   onTestReminder
 }) => {
   const waqtWindows = getDailyWaqtWindows(times, completedPrayers, new Date());
-  const obligatoryPrayers = waqtWindows.filter((w) => w.isPrayer);
+  const obligatoryPrayers = waqtWindows.filter((w) => w.isPrayer && w.key !== 'tahajjud');
   const completedCount = obligatoryPrayers.filter((w) => w.isCompleted).length;
   const missedCount = obligatoryPrayers.filter((w) => w.status === 'missed').length;
-  const percentage = Math.round((completedCount / obligatoryPrayers.length) * 100);
+  const percentage = Math.round((completedCount / (obligatoryPrayers.length || 1)) * 100);
 
   return (
     <div className="space-y-6">

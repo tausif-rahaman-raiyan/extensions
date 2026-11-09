@@ -1,9 +1,10 @@
 export type ProviderId =
   | 'aladhan'
   | 'aladhancity'
-  | 'prayzone'
+  | 'habibur'
   | 'islamicnetwork'
   | 'astronomical'
+  | 'prayzone'
   | 'muslimsalat'
   | 'islamicfinder'
   | 'waktusolat';
@@ -69,6 +70,16 @@ export interface ManualPrayerOverrides {
   maghrib: string;
   isha: string;
   tahajjudStart?: string;
+}
+
+export interface PrayerMinuteOffsets {
+  fajr: number;
+  sunrise: number;
+  dhuhr: number;
+  asr: number;
+  maghrib: number;
+  isha: number;
+  tahajjud: number;
 }
 
 export interface ProviderHealth {

@@ -95,75 +95,18 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
   };
 
   const statusBadge = getStatusBadge();
-  const countablePrayers = waqtWindows.filter((p) => p.isPrayer);
+  const countablePrayers = waqtWindows.filter((p) => p.isPrayer && p.key !== 'tahajjud');
   const completedCount = countablePrayers.filter((p) => p.isCompleted).length;
   const missedCount = countablePrayers.filter((p) => p.status === 'missed').length;
   const minutesUntilNextHour = 60 - currentTime.getMinutes();
 
   return (
     <div className="w-full max-w-sm mx-auto bg-slate-900 text-slate-100 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
-      {/* Top Prominent Bengali Wisdom Quote Banner */}
-      <div className="p-3.5 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border-b border-emerald-500/30 space-y-1.5">
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Islamic Wisdom</span>
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 font-mono-numbers">
-            <Clock className="w-3 h-3 text-slate-500" />
-            <span>Rotates hourly ({minutesUntilNextHour}m left)</span>
-          </div>
-        </div>
-
-        {hourlyQuote.arabic && (
-          <p className="font-arabic text-sm text-emerald-300 text-right dir-rtl leading-tight" dir="rtl">
-            {hourlyQuote.arabic}
-          </p>
-        )}
-
-        <blockquote className="font-bengali text-xs text-slate-100 leading-snug font-medium italic">
-          "{hourlyQuote.bengali}"
-        </blockquote>
-
-        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[11px]">
-          <span className="font-bengali text-emerald-400 font-semibold truncate max-w-[200px]">
-            — {hourlyQuote.reference}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onToggleBookmark(hourlyQuote.id)}
-              className="text-slate-400 hover:text-amber-400 transition-colors"
-              title={isBookmarked ? 'Bookmarked' : 'Bookmark Hadith'}
-            >
-              {isBookmarked ? (
-                <BookmarkCheck className="w-3.5 h-3.5 text-amber-400" />
-              ) : (
-                <Bookmark className="w-3.5 h-3.5" />
-              )}
-            </button>
-            <button
-              onClick={handleCopyQuote}
-              className="text-slate-400 hover:text-slate-200 transition-colors"
-              title="Copy Bengali Wisdom"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-            <button
-              onClick={onNextQuote}
-              className="text-emerald-400 hover:text-emerald-300 transition-colors"
-              title="Rotate Quote Manually"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Header Bar with Emerald Crescent Moon Icon */}
-      <div className="px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+      <div className="px-4 py-3 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#152820] to-[#08100C] border border-emerald-500/40 flex items-center justify-center relative shadow-sm">
-            <svg viewBox="0 0 128 128" className="w-4 h-4">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#152820] to-[#08100C] border border-emerald-500/40 flex items-center justify-center relative shadow-sm shrink-0">
+            <svg viewBox="0 0 128 128" className="w-4.5 h-4.5">
               <path
                 d="M78 24 C46 24 22 48 22 80 C22 104 38 114 54 114 C36 102 34 76 52 52 C64 36 78 30 78 24 Z"
                 fill="#34D399"
@@ -186,9 +129,9 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
               onClick={onOpenLocationModal}
               className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 text-left"
             >
-              <span className="truncate max-w-[120px]">{location.nameEn}</span>
+              <span className="truncate max-w-[120px] font-medium">{location.nameEn}</span>
               <span className="text-slate-500">·</span>
-              <span className="text-slate-400">Change</span>
+              <span className="text-slate-400 hover:underline">Change</span>
             </button>
           </div>
         </div>
@@ -197,14 +140,14 @@ export const MiniWidget: React.FC<MiniWidgetProps> = ({
           <button
             onClick={onOpenProviderModal}
             title="Provider Status & Diagnostics"
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
           >
             <Activity className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onOpenFullDashboard}
             title="Expand to Full Dashboard"
-            className="px-2.5 py-1 text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-md transition-colors flex items-center gap-1"
+            className="px-2.5 py-1 text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-md transition-colors flex items-center gap-1 cursor-pointer"
           >
             <Maximize2 className="w-3 h-3" />
             <span>Full View</span>

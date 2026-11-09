@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for Prayer Focus v2.2.23:\n1. Use uploaded islamic.png (Sujud under crescent moon) everywhere as the official icon across Web app, Chrome extension toolbar, manifest, and icons directory.\n2. Replace all non-working APIs in the 5-tier diagnostic engine with verified working providers: AlAdhan Coordinates, AlAdhan City (WaktuSolat), PrayZone API, Islamic Network API, and Local Astronomical Solar Engine. Completely eliminate SITP.\n3. Add Direct Manual Time Entry (HH:mm) per prayer in Settings with individual waqt overrides, enabled toggle, and reset options.\n4. Update Overview View's Daily Prayer Schedule cards to display start-to-end waqt time limits (e.g. 4:45 AM – 6:01 AM).\n5. Harden GitHub Actions CI workflow to build, package, and release the extension cleanly.",
-  "updatedAt":  "2026-11-09T03:20:51.578754303Z",
+  "summary":  "Implementation plan for auto Qada status display, removing duplicate timetable section in PrayerTimesView, and adding floating toast feedback on Refresh Timings.",
+  "updatedAt":  "2026-11-09T04:23:14.785185738Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

@@ -22,7 +22,8 @@ import {
   ThemeMode,
   NotificationSettings,
   NavSection,
-  ManualPrayerOverrides
+  ManualPrayerOverrides,
+  PrayerMinuteOffsets
 } from '../types/prayer';
 import { Sidebar } from './Sidebar';
 import { TopQuoteBanner } from './TopQuoteBanner';
@@ -73,6 +74,8 @@ export interface FullDashboardProps {
   onSelectSection: (section: NavSection) => void;
   manualOverrides: ManualPrayerOverrides;
   onSaveManualOverrides: (overrides: ManualPrayerOverrides) => void;
+  minuteOffsets: PrayerMinuteOffsets;
+  onSaveMinuteOffsets: (offsets: PrayerMinuteOffsets) => void;
 }
 
 export const FullDashboard: React.FC<FullDashboardProps> = ({
@@ -107,7 +110,9 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
   activeSection,
   onSelectSection,
   manualOverrides,
-  onSaveManualOverrides
+  onSaveManualOverrides,
+  minuteOffsets,
+  onSaveMinuteOffsets
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [soundPlayed, setSoundPlayed] = useState(false);
@@ -381,6 +386,11 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
                 onSaveManualOverrides(o);
                 showToast(o.enabled ? 'Manual prayer overrides applied' : 'Manual overrides disabled (using calculation)');
               }}
+              minuteOffsets={minuteOffsets}
+              onSaveMinuteOffsets={(offsets) => {
+                onSaveMinuteOffsets(offsets);
+                showToast('Minute steppers adjusted successfully');
+              }}
               currentTimes={times}
             />
           )}
@@ -402,7 +412,6 @@ export const FullDashboard: React.FC<FullDashboardProps> = ({
         quote={hourlyQuote}
         onPrayed={handlePrayedAction}
         onRemindLater={handleRemindLaterAction}
-        onOpenFocusMode={handleOpenFocusModeAction}
       />
 
       {/* 5-Minute Fullscreen Focus Mode Modal */}

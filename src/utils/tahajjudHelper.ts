@@ -60,32 +60,38 @@ export interface TahajjudStatus {
 }
 
 /**
+ * Helper to safely extract hours and minutes from HH:mm string (protecting against NaN)
+ */
+function parseHHMMString(hhmm?: string): { hours: number; mins: number; decimal: number } {
+  if (!hhmm) return { hours: 0, mins: 0, decimal: 0 };
+  const cleaned = hhmm.trim().split(' ')[0];
+  const parts = cleaned.split(':');
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return { hours: h, mins: m, decimal: h + m / 60 };
+}
+
+/**
  * Determine exact Tahajjud state and countdown with robust overnight transition handling
  */
 export function getTahajjudStatus(times: PrayerTimes, now: Date = new Date()): TahajjudStatus {
   const currentHours = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
 
-  const parseHHMM = (hhmm: string): number => {
-    const [h, m] = hhmm.split(':').map(Number);
-    return h + m / 60;
-  };
-
-  const maghribVal = parseHHMM(times.maghrib);
-  const fajrVal = parseHHMM(times.fajr);
-  const tahajjudStartVal = parseHHMM(times.tahajjudStart);
+  const maghribVal = parseHHMMString(times.maghrib).decimal;
+  const fajrVal = parseHHMMString(times.fajr).decimal;
+  const tahajjudStartVal = parseHHMMString(times.tahajjudStart).decimal;
 
   const nowMs = now.getTime();
 
   const getDateWithHours = (baseDate: Date, hoursDecimal: number, addDays: number = 0): Date => {
     const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + addDays);
-    const h = Math.floor(hoursDecimal);
-    const m = Math.floor((hoursDecimal - h) * 60);
-    const s = Math.round(((hoursDecimal - h) * 60 - m) * 60);
-    d.setHours(h, m, s, 0);
+    const h = Math.floor(hoursDecimal) % 24;
+    const m = Math.floor((hoursDecimal - Math.floor(hoursDecimal)) * 60) % 60;
+    d.setHours(h, m, 0, 0);
     return d;
   };
 
-  // 1. ACTIVE: Currently in the Last Third of the Night (between tahajjudStart and Fajr, e.g. 02:40 AM to 04:55 AM)
+  // 1. ACTIVE: Currently in the Last Third of the Night (between tahajjudStart and Fajr)
   if (currentHours >= tahajjudStartVal && currentHours < fajrVal) {
     const targetDate = getDateWithHours(now, fajrVal, 0);
     const remainingSec = Math.max(0, Math.floor((targetDate.getTime() - nowMs) / 1000));
@@ -104,7 +110,7 @@ export function getTahajjudStatus(times: PrayerTimes, now: Date = new Date()): T
     };
   }
 
-  // 2. NIGHT AFTER MIDNIGHT (e.g. 00:00 to 02:40 AM): Tahajjud permissible, waiting for Last Third
+  // 2. NIGHT AFTER MIDNIGHT (e.g. 00:00 to Tahajjud start): Tahajjud permissible, waiting for Last Third
   if (currentHours < tahajjudStartVal) {
     const targetDate = getDateWithHours(now, tahajjudStartVal, 0);
     const remainingSec = Math.max(0, Math.floor((targetDate.getTime() - nowMs) / 1000));
@@ -167,47 +173,41 @@ export function getTahajjudStatus(times: PrayerTimes, now: Date = new Date()): T
 export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextPrayerInfo {
   const currentHours = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
 
-  const parseHHMM = (hhmm: string): number => {
-    const [h, m] = hhmm.split(':').map(Number);
-    return h + m / 60;
-  };
-
   const prayers = [
-    { name: 'Fajr', nameEn: 'Fajr', val: parseHHMM(times.fajr), hhmm: times.fajr },
-    { name: 'Sunrise', nameEn: 'Sunrise', val: parseHHMM(times.sunrise), hhmm: times.sunrise },
-    { name: 'Dhuhr', nameEn: 'Dhuhr', val: parseHHMM(times.dhuhr), hhmm: times.dhuhr },
-    { name: 'Asr', nameEn: 'Asr', val: parseHHMM(times.asr), hhmm: times.asr },
-    { name: 'Maghrib', nameEn: 'Maghrib', val: parseHHMM(times.maghrib), hhmm: times.maghrib },
-    { name: 'Isha', nameEn: 'Isha', val: parseHHMM(times.isha), hhmm: times.isha }
+    { name: 'Fajr', nameEn: 'Fajr', parsed: parseHHMMString(times.fajr), hhmm: times.fajr || '04:45' },
+    { name: 'Sunrise', nameEn: 'Sunrise', parsed: parseHHMMString(times.sunrise), hhmm: times.sunrise || '06:01' },
+    { name: 'Dhuhr', nameEn: 'Dhuhr', parsed: parseHHMMString(times.dhuhr), hhmm: times.dhuhr || '11:37' },
+    { name: 'Asr', nameEn: 'Asr', parsed: parseHHMMString(times.asr), hhmm: times.asr || '15:36' },
+    { name: 'Maghrib', nameEn: 'Maghrib', parsed: parseHHMMString(times.maghrib), hhmm: times.maghrib || '17:12' },
+    { name: 'Isha', nameEn: 'Isha', parsed: parseHHMMString(times.isha), hhmm: times.isha || '18:28' }
   ];
 
   let currentWaqtNameEn = 'Isha / Night';
-  if (currentHours < prayers[0].val) {
+  if (currentHours < prayers[0].parsed.decimal) {
     currentWaqtNameEn = 'Pre-Dawn / Tahajjud';
-  } else if (currentHours < prayers[1].val) {
+  } else if (currentHours < prayers[1].parsed.decimal) {
     currentWaqtNameEn = 'Fajr Period';
-  } else if (currentHours < prayers[2].val) {
+  } else if (currentHours < prayers[2].parsed.decimal) {
     currentWaqtNameEn = 'Ishraq & Duha';
-  } else if (currentHours < prayers[3].val) {
+  } else if (currentHours < prayers[3].parsed.decimal) {
     currentWaqtNameEn = 'Dhuhr Period';
-  } else if (currentHours < prayers[4].val) {
+  } else if (currentHours < prayers[4].parsed.decimal) {
     currentWaqtNameEn = 'Asr Period';
-  } else if (currentHours < prayers[5].val) {
+  } else if (currentHours < prayers[5].parsed.decimal) {
     currentWaqtNameEn = 'Maghrib Period';
   }
 
   // Find next event today
   for (let i = 0; i < prayers.length; i++) {
-    if (currentHours < prayers[i].val) {
-      const p = prayers[i];
+    const p = prayers[i];
+    if (currentHours < p.parsed.decimal) {
       const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const [h, m] = p.hhmm.split(':').map(Number);
-      targetDate.setHours(h, m, 0, 0);
+      targetDate.setHours(p.parsed.hours, p.parsed.mins, 0, 0);
 
-      const prevTimeVal = i === 0 ? parseHHMM(times.isha) : prayers[i - 1].val;
-      const totalSpanHours = i === 0 ? (p.val + 24 - prevTimeVal) : (p.val - prevTimeVal);
+      const prevTimeVal = i === 0 ? parseHHMMString(times.isha).decimal : prayers[i - 1].parsed.decimal;
+      const totalSpanHours = i === 0 ? (p.parsed.decimal + 24 - prevTimeVal) : (p.parsed.decimal - prevTimeVal);
       const elapsedHours = i === 0 ? (currentHours + 24 - prevTimeVal) : (currentHours - prevTimeVal);
-      const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedHours / totalSpanHours) * 100)));
+      const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedHours / (totalSpanHours || 1)) * 100)));
       const secondsRemaining = Math.max(0, Math.floor((targetDate.getTime() - now.getTime()) / 1000));
 
       return {
@@ -215,35 +215,35 @@ export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextP
         nameEn: p.nameEn,
         timeStr: p.hhmm,
         targetDate,
-        secondsRemaining,
+        secondsRemaining: isNaN(secondsRemaining) ? 0 : secondsRemaining,
         isTahajjud: false,
         currentWaqtNameEn,
-        progressPercent
+        progressPercent: isNaN(progressPercent) ? 0 : progressPercent
       };
     }
   }
 
   // If past Isha, next prayer is Fajr tomorrow morning
+  const fajrParsed = parseHHMMString(times.fajr);
   const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const [fH, fM] = times.fajr.split(':').map(Number);
-  targetDate.setHours(fH, fM, 0, 0);
+  targetDate.setHours(fajrParsed.hours, fajrParsed.mins, 0, 0);
 
-  const ishaVal = parseHHMM(times.isha);
-  const fajrVal = parseHHMM(times.fajr);
+  const ishaVal = parseHHMMString(times.isha).decimal;
+  const fajrVal = fajrParsed.decimal;
   const totalSpanHours = (fajrVal + 24) - ishaVal;
   const elapsedHours = (currentHours - ishaVal);
-  const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedHours / totalSpanHours) * 100)));
+  const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedHours / (totalSpanHours || 1)) * 100)));
   const secondsRemaining = Math.max(0, Math.floor((targetDate.getTime() - now.getTime()) / 1000));
 
   return {
     name: 'Fajr',
     nameEn: 'Fajr',
-    timeStr: times.fajr,
+    timeStr: times.fajr || '04:45',
     targetDate,
-    secondsRemaining,
+    secondsRemaining: isNaN(secondsRemaining) ? 0 : secondsRemaining,
     isTahajjud: false,
     currentWaqtNameEn: 'Isha / Night',
-    progressPercent
+    progressPercent: isNaN(progressPercent) ? 0 : progressPercent
   };
 }
 
@@ -278,39 +278,49 @@ export function getDailyWaqtWindows(
   const determineStatus = (
     startVal: number,
     endVal: number,
-    key: string,
-    crossesMidnight: boolean = false
+    key: string
   ): { status: WaqtStatus; label: string } => {
     const isDone = !!completedPrayers[key];
     if (isDone) {
       return { status: 'finished', label: 'Finished' };
     }
 
-    let isActive = false;
-    let isPassed = false;
-
-    if (!crossesMidnight) {
-      if (currentHours >= startVal && currentHours < endVal) {
-        isActive = true;
-      } else if (currentHours >= endVal) {
-        isPassed = true;
+    // Special handling for Isha (runs across midnight from evening to Fajr dawn)
+    if (key === 'isha') {
+      // During daytime (between sunrise and Isha start), tonight's Isha is upcoming
+      if (currentHours >= sunriseVal && currentHours < ishaVal) {
+        return { status: 'upcoming', label: 'Upcoming' };
       }
-    } else {
-      // Overnight (e.g. Isha: starts at ishaVal ~18:34, ends at fajrVal ~04:56 next morning)
-      if (currentHours >= startVal || currentHours < endVal) {
-        isActive = true;
-      } else if (currentHours >= endVal && currentHours < startVal) {
-        isPassed = true;
+      // Nighttime active window: from Isha evening (e.g. 18:28) until Fajr dawn (e.g. 04:45)
+      if (currentHours >= ishaVal || currentHours < fajrVal) {
+        return { status: 'active', label: 'Active Now' };
       }
-    }
-
-    if (isActive) {
-      return { status: 'active', label: 'Active Now' };
-    }
-    if (isPassed) {
+      // After Fajr dawn until sunrise: last night's window has elapsed
       return { status: 'missed', label: 'Unfinished' };
     }
-    return { status: 'upcoming', label: 'Upcoming' };
+
+    // Special handling for Tahajjud (prime window: tahajjudStart ~01:00 AM to Fajr ~04:45 AM)
+    if (key === 'tahajjud') {
+      // Inside prime window
+      if (currentHours >= tahajjudVal && currentHours < fajrVal) {
+        return { status: 'active', label: 'Active Now' };
+      }
+      // During daytime and evening before Tahajjud start, tonight's Tahajjud is upcoming
+      if (currentHours >= sunriseVal || currentHours < tahajjudVal) {
+        return { status: 'upcoming', label: 'Upcoming' };
+      }
+      // After Fajr dawn until sunrise
+      return { status: 'missed', label: 'Unfinished' };
+    }
+
+    // Standard daytime waqts: Fajr, Sunrise, Dhuhr, Asr, Maghrib
+    if (currentHours < startVal) {
+      return { status: 'upcoming', label: 'Upcoming' };
+    }
+    if (currentHours >= startVal && currentHours < endVal) {
+      return { status: 'active', label: 'Active Now' };
+    }
+    return { status: 'missed', label: 'Unfinished' };
   };
 
   const fajrStat = determineStatus(fajrVal, sunriseVal, 'fajr');
@@ -318,8 +328,8 @@ export function getDailyWaqtWindows(
   const dhuhrStat = determineStatus(dhuhrVal, asrVal, 'dhuhr');
   const asrStat = determineStatus(asrVal, maghribVal, 'asr');
   const maghribStat = determineStatus(maghribVal, ishaVal, 'maghrib');
-  const ishaStat = determineStatus(ishaVal, fajrVal, 'isha', true);
-  const tahajjudStat = determineStatus(tahajjudVal, fajrVal, 'tahajjud', false);
+  const ishaStat = determineStatus(ishaVal, fajrVal, 'isha');
+  const tahajjudStat = determineStatus(tahajjudVal, fajrVal, 'tahajjud');
 
   return [
     {

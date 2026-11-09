@@ -33,3 +33,17 @@ export function playIslamicChime(): void {
     console.warn('Audio play restricted or unavailable:', err);
   }
 }
+
+/**
+ * Starts a continuous looping Islamic adhan chime that plays every 2.5s until stop() is called.
+ */
+export function startLoopingChime(): () => void {
+  playIslamicChime();
+  const interval = setInterval(() => {
+    playIslamicChime();
+  }, 2500);
+
+  return () => {
+    clearInterval(interval);
+  };
+}
