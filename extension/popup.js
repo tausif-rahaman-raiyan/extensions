@@ -1,55 +1,59 @@
 /**
  * Prayer Focus v2.2.23 — Popup Script
- * Accurate timings with start-to-limit waqt windows, dual action buttons,
- * and 5-tier verified API resilience.
+ * Storage-synced, live-ticking timers with Red Box Missed (Qada) status.
  */
 
-const QUOTES = [
-  {
-    arabic: "إِنَّ أَوَّلَ مَا يُحَاسَبُ بِهِ الْعَبْدُ يَوْمَ الْقِيَامَةِ مِنْ عَمَلِهِ صَلاَتُهُ",
-    bengali: "কিয়ামতের দিন সর্বপ্রথম মানুষের সালাতের হিসাব নেওয়া হবে। তা ঠিক থাকলে সে কামিয়াব হবে এবং মুক্তি পাবে; আর তা বিনষ্ট হলে সে ব্যর্থ ও ক্ষতিগ্রস্ত হবে।",
-    ref: "সুনান আত-তিরমিযী ৪১৩ · সহিহ"
-  },
-  {
-    arabic: "يَنْزِلُ رَبُّنَا كُلَّ لَيْلَةٍ إِلَى السَّمَاءِ الدُّنْيَا حِينَ يَبْقَى ثُلُثُ اللَّيْلِ الآخِرُ",
-    bengali: "আমাদের রব প্রতি রাতের শেষ তৃতীয়াংশে প্রথম আকাশে অবতরণ করেন এবং ঘোষণা করেন: কে আছ আমাকে ডাকবে, আমি তার ডাকে সাড়া দেব? কে আছ কিছু চাইবে, আমি তাকে দান করব? কে আছ ক্ষমা চাইবে, আমি তাকে ক্ষমা করে দেব?",
-    ref: "সহিহ বুখারী ১১৪৫ · সহিহ মুসলিম ৭৫৮"
-  },
-  {
-    arabic: "أَفْضَلُ الأَعْمَالِ الصَّلاَةُ لِوَقْتِهَا",
-    bengali: "রাসূলুল্লাহ (সা.)-কে জিজ্ঞাসা করা হলো, আল্লাহর নিকট সর্বাধিক প্রিয় আমল কোনটি? তিনি বললেন: ওয়াক্তমত যথাসময়ে সালাত আদায় করা।",
-    ref: "সহিহ বুখারী ৫২৭ · সহিহ মুসলিম ৮৫"
-  },
-  {
-    arabic: "وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا وَيَرْزُقْهُ مِنْ حَيْثُ لَا يَحْتَسِبُ",
-    bengali: "যে ব্যক্তি আল্লাহকে ভয় করবে, আল্লাহ তার জন্য সংকট থেকে উত্তরণের পথ তৈরি করে দেবেন এবং তাকে এমন উৎস থেকে রিজিক দেবেন যা সে ধারণাও করেনি।",
-    ref: "সূরা আত-তালাক : ২-৩"
-  },
-  {
-    arabic: "أَقِمِ الصَّلَاةَ لِدُلُوكِ الشَّمْسِ إِلَىٰ غَسَقِ اللَّيْلِ وَقُرْآنَ الْفَجْرِ",
-    bengali: "সূর্য হেলে পড়ার সময় থেকে রাতের অন্ধকার পর্যন্ত সালাত কায়েম করুন এবং ফজরের সালাতও। নিশ্চয় ফজরের সালাতে ফিরিশতারা উপস্থিত থাকেন।",
-    ref: "সূরা আল-ইসরা : ৭৮"
-  }
-];
-
-function getHourlyQuote() {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 0);
-  const diff = now.getTime() - startOfYear.getTime();
-  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const currentHour = now.getHours();
-  const idx = Math.abs(dayOfYear * 24 + currentHour) % QUOTES.length;
-  return QUOTES[idx];
+async function getStoredState() {
+  return new Promise((resolve) => {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get([
+        'prayer_focus_location',
+        'location_info',
+        'prayer_focus_provider',
+        'active_provider',
+        'prayer_focus_juristic',
+        'juristic_method',
+        'prayer_focus_completed',
+        'completed_prayers'
+      ], (items) => {
+        const loc = items.prayer_focus_location || items.location_info || null;
+        const provider = items.prayer_focus_provider || items.active_provider || 'aladhan_coords';
+        const juristic = items.prayer_focus_juristic || items.juristic_method || 'hanafi';
+        const completed = items.prayer_focus_completed || items.completed_prayers || {};
+        resolve({ loc, provider, juristic, completed });
+      });
+    } else {
+      try {
+        const locStr = localStorage.getItem('prayer_focus_location') || localStorage.getItem('location_info');
+        const loc = locStr ? JSON.parse(locStr) : null;
+        const provider = localStorage.getItem('prayer_focus_provider') || localStorage.getItem('active_provider') || 'aladhan_coords';
+        const juristic = localStorage.getItem('prayer_focus_juristic') || localStorage.getItem('juristic_method') || 'hanafi';
+        const compStr = localStorage.getItem('prayer_focus_completed') || localStorage.getItem('completed_prayers');
+        const completed = compStr ? JSON.parse(compStr) : {};
+        resolve({ loc, provider, juristic, completed });
+      } catch (e) {
+        resolve({ loc: null, provider: 'aladhan_coords', juristic: 'hanafi', completed: {} });
+      }
+    }
+  });
 }
 
-function updateQuoteDisplay() {
-  const q = getHourlyQuote();
-  const arabicEl = document.getElementById('quoteArabic');
-  const bnEl = document.getElementById('quoteBengali');
-  const refEl = document.getElementById('quoteRef');
-  if (arabicEl) arabicEl.textContent = q.arabic;
-  if (bnEl) bnEl.textContent = '"' + q.bengali + '"';
-  if (refEl) refEl.textContent = '— ' + q.ref;
+function parseHHMM(timeStr, baseDate = new Date()) {
+  if (!timeStr || timeStr === '--:--') return null;
+  const cleaned = timeStr.trim();
+  const match = cleaned.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+  if (!match) return null;
+
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const mod = match[3]?.toLowerCase();
+
+  if (mod === 'pm' && h < 12) h += 12;
+  if (mod === 'am' && h === 12) h = 0;
+
+  const d = new Date(baseDate);
+  d.setHours(h, m, 0, 0);
+  return d;
 }
 
 function sanitize12h(timeStr) {
@@ -78,14 +82,22 @@ function format12Hour(time24) {
   return `${h}:${m} ${ampm}`;
 }
 
-// 5-Tier Resilient Working API Fallback:
-// 1. AlAdhan Coordinates -> 2. AlAdhan City -> 3. PrayZone -> 4. Islamic Network -> 5. Local Solar Engine
-async function fetchPrayerTimes(lat = 22.3569, lng = 91.7832) {
+function formatCountdownDigital(seconds) {
+  if (!seconds || seconds <= 0) return '00:00:00';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// Resilient Working API Fallback with stored lat/lng
+async function fetchPrayerTimes(lat = 22.3569, lng = 91.7832, juristic = 'hanafi') {
   const ts = Math.floor(Date.now() / 1000);
+  const school = juristic === 'hanafi' ? 1 : 0;
 
   // 1. AlAdhan Coordinates
   try {
-    const res = await fetch(`https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=1&school=1`);
+    const res = await fetch(`https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=1&school=${school}`);
     if (res.ok) {
       const data = await res.json();
       if (data?.data?.timings) {
@@ -98,7 +110,7 @@ async function fetchPrayerTimes(lat = 22.3569, lng = 91.7832) {
             Maghrib: sanitize12h(data.data.timings.Maghrib),
             Isha: sanitize12h(data.data.timings.Isha)
           },
-          provider: 'AlAdhan Coordinates'
+          provider: 'AlAdhan API'
         };
       }
     }
@@ -106,9 +118,9 @@ async function fetchPrayerTimes(lat = 22.3569, lng = 91.7832) {
     console.warn('[Prayer Focus] AlAdhan coords failed, cascading...');
   }
 
-  // 2. AlAdhan City-Based (WaktuSolat)
+  // 2. AlAdhan City-Based
   try {
-    const res = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Chattogram&country=Bangladesh&method=1&school=1');
+    const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=Chattogram&country=Bangladesh&method=1&school=${school}`);
     if (res.ok) {
       const data = await res.json();
       if (data?.data?.timings) {
@@ -129,7 +141,7 @@ async function fetchPrayerTimes(lat = 22.3569, lng = 91.7832) {
     console.warn('[Prayer Focus] AlAdhan city failed, cascading...');
   }
 
-  // 3. PrayZone Global API
+  // 3. PrayZone
   try {
     const res = await fetch('https://api.pray.zone/v2/times/today.json?city=dhaka');
     if (res.ok) {
@@ -153,34 +165,193 @@ async function fetchPrayerTimes(lat = 22.3569, lng = 91.7832) {
     console.warn('[Prayer Focus] PrayZone failed, cascading...');
   }
 
-  // 4. Islamic Network API
-  try {
-    const res = await fetch('https://api.aladhan.com/v1/timingsByAddress?address=Chattogram,%20Bangladesh&method=1&school=1');
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.data?.timings) {
-        return {
-          timings: {
-            Fajr: sanitize12h(data.data.timings.Fajr),
-            Sunrise: sanitize12h(data.data.timings.Sunrise),
-            Dhuhr: sanitize12h(data.data.timings.Dhuhr),
-            Asr: sanitize12h(data.data.timings.Asr),
-            Maghrib: sanitize12h(data.data.timings.Maghrib),
-            Isha: sanitize12h(data.data.timings.Isha)
-          },
-          provider: 'Islamic Network API'
-        };
-      }
-    }
-  } catch (e) {
-    console.warn('[Prayer Focus] Islamic Network failed, cascading...');
-  }
-
-  // 5. Guaranteed Local Engine fallback
+  // Guaranteed Local Engine fallback
   return {
     timings: { Fajr: '04:45', Sunrise: '06:01', Dhuhr: '11:37', Asr: '15:36', Maghrib: '17:12', Isha: '18:28' },
     provider: 'Local Solar Engine'
   };
+}
+
+function renderPrayerCards(timings, completedPrayers = {}) {
+  const list = document.getElementById('prayersList');
+  if (!list || !timings) return;
+
+  const now = new Date();
+  const fajr = parseHHMM(timings.Fajr, now);
+  const sunrise = parseHHMM(timings.Sunrise, now);
+  const dhuhr = parseHHMM(timings.Dhuhr, now);
+  const asr = parseHHMM(timings.Asr, now);
+  const maghrib = parseHHMM(timings.Maghrib, now);
+  const isha = parseHHMM(timings.Isha, now);
+
+  const rawCards = [
+    { key: 'fajr', name: 'Fajr', startStr: timings.Fajr, limitStr: timings.Sunrise, startDate: fajr, limitDate: sunrise, isPrayer: true },
+    { key: 'sunrise', name: 'Sunrise', startStr: timings.Sunrise, limitStr: timings.Dhuhr, startDate: sunrise, limitDate: dhuhr, isPrayer: false },
+    { key: 'dhuhr', name: 'Dhuhr', startStr: timings.Dhuhr, limitStr: timings.Asr, startDate: dhuhr, limitDate: asr, isPrayer: true },
+    { key: 'asr', name: 'Asr', startStr: timings.Asr, limitStr: timings.Maghrib, startDate: asr, limitDate: maghrib, isPrayer: true },
+    { key: 'maghrib', name: 'Maghrib', startStr: timings.Maghrib, limitStr: timings.Isha, startDate: maghrib, limitDate: isha, isPrayer: true },
+    { key: 'isha', name: 'Isha', startStr: timings.Isha, limitStr: timings.Fajr, startDate: isha, limitDate: null, isPrayer: true }
+  ];
+
+  list.innerHTML = '';
+
+  rawCards.forEach((c) => {
+    const isDone = c.isPrayer && !!completedPrayers[c.key];
+    const isExpired = c.isPrayer && c.limitDate && now > c.limitDate;
+    const isMissed = c.isPrayer && !isDone && isExpired;
+    const isActive = c.startDate && c.limitDate && now >= c.startDate && now < c.limitDate;
+
+    let cardClass = 'prayer-card';
+    let badgeHtml = '';
+
+    if (isDone) {
+      cardClass += ' done';
+      badgeHtml = '<span class="card-badge done">✓ Done</span>';
+    } else if (isMissed) {
+      cardClass += ' missed';
+      badgeHtml = '<span class="card-badge missed">⚠ Missed (Qada)</span>';
+    } else if (isActive) {
+      cardClass += ' active';
+      badgeHtml = '<span class="card-badge active">● Active</span>';
+    }
+
+    const card = document.createElement('div');
+    card.className = cardClass;
+    card.innerHTML = `
+      <div>
+        <span class="card-name">${c.name}</span>
+        ${badgeHtml ? `<div>${badgeHtml}</div>` : ''}
+      </div>
+      <div class="card-times">
+        <span class="time">${format12Hour(c.startStr)}</span>
+        <span class="limit">Limit: ${format12Hour(c.limitStr)}</span>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function updateLiveCounters(timings, completedPrayers = {}) {
+  const now = new Date();
+  const fajr = parseHHMM(timings.Fajr, now);
+  const sunrise = parseHHMM(timings.Sunrise, now);
+  const dhuhr = parseHHMM(timings.Dhuhr, now);
+  const asr = parseHHMM(timings.Asr, now);
+  const maghrib = parseHHMM(timings.Maghrib, now);
+  const isha = parseHHMM(timings.Isha, now);
+
+  if (!fajr || !sunrise || !dhuhr || !asr || !maghrib || !isha) return;
+
+  const tomorrowFajr = new Date(fajr);
+  tomorrowFajr.setDate(tomorrowFajr.getDate() + 1);
+
+  const yesterdayMaghrib = new Date(maghrib);
+  yesterdayMaghrib.setDate(yesterdayMaghrib.getDate() - 1);
+
+  // Determine active waqt & next prayer
+  let currentWaqt = '';
+  let nextName = '';
+  let nextTimeStr = '';
+  let targetDate = null;
+  let activeStartDate = null;
+  let activeEndDate = null;
+
+  if (now < fajr) {
+    currentWaqt = 'Isha (Night)';
+    nextName = 'Fajr';
+    nextTimeStr = timings.Fajr;
+    targetDate = fajr;
+    activeStartDate = yesterdayMaghrib;
+    activeEndDate = fajr;
+  } else if (now >= fajr && now < sunrise) {
+    currentWaqt = 'Fajr';
+    nextName = 'Sunrise (Ishraq)';
+    nextTimeStr = timings.Sunrise;
+    targetDate = sunrise;
+    activeStartDate = fajr;
+    activeEndDate = sunrise;
+  } else if (now >= sunrise && now < dhuhr) {
+    currentWaqt = 'Ishraq / Duha';
+    nextName = 'Dhuhr';
+    nextTimeStr = timings.Dhuhr;
+    targetDate = dhuhr;
+    activeStartDate = sunrise;
+    activeEndDate = dhuhr;
+  } else if (now >= dhuhr && now < asr) {
+    currentWaqt = 'Dhuhr';
+    nextName = 'Asr';
+    nextTimeStr = timings.Asr;
+    targetDate = asr;
+    activeStartDate = dhuhr;
+    activeEndDate = asr;
+  } else if (now >= asr && now < maghrib) {
+    currentWaqt = 'Asr';
+    nextName = 'Maghrib';
+    nextTimeStr = timings.Maghrib;
+    targetDate = maghrib;
+    activeStartDate = asr;
+    activeEndDate = maghrib;
+  } else if (now >= maghrib && now < isha) {
+    currentWaqt = 'Maghrib';
+    nextName = 'Isha';
+    nextTimeStr = timings.Isha;
+    targetDate = isha;
+    activeStartDate = maghrib;
+    activeEndDate = isha;
+  } else {
+    currentWaqt = 'Isha';
+    nextName = 'Fajr';
+    nextTimeStr = timings.Fajr;
+    targetDate = tomorrowFajr;
+    activeStartDate = isha;
+    activeEndDate = tomorrowFajr;
+  }
+
+  const secondsRemaining = Math.max(0, Math.floor((targetDate.getTime() - now.getTime()) / 1000));
+  const totalWaqtSecs = Math.max(1, Math.floor((activeEndDate.getTime() - activeStartDate.getTime()) / 1000));
+  const elapsedSecs = Math.floor((now.getTime() - activeStartDate.getTime()) / 1000);
+  const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedSecs / totalWaqtSecs) * 100)));
+
+  // Update Hero elements
+  const elName = document.getElementById('nextPrayerName');
+  const elTime = document.getElementById('nextPrayerTime');
+  const elCountdown = document.getElementById('countdownVal');
+  const elBar = document.getElementById('progressBar');
+
+  if (elName) elName.textContent = nextName;
+  if (elTime) elTime.textContent = format12Hour(nextTimeStr);
+  if (elCountdown) elCountdown.textContent = formatCountdownDigital(secondsRemaining);
+  if (elBar) elBar.style.width = `${progressPercent}%`;
+
+  // Calculate Tahajjud (Last Third of Night)
+  let nightMaghrib = maghrib;
+  let nightFajr = tomorrowFajr;
+
+  if (now < fajr) {
+    nightMaghrib = yesterdayMaghrib;
+    nightFajr = fajr;
+  }
+
+  const nightMs = nightFajr.getTime() - nightMaghrib.getTime();
+  const tahajjudStart = new Date(nightMaghrib.getTime() + (nightMs * 2) / 3);
+  const isTahajjudActive = now >= tahajjudStart && now < nightFajr;
+
+  const elTahajjudSub = document.getElementById('tahajjudStatus');
+  const elTahajjudTimer = document.getElementById('tahajjudCountdown');
+
+  if (isTahajjudActive) {
+    const secsToFajr = Math.max(0, Math.floor((nightFajr.getTime() - now.getTime()) / 1000));
+    if (elTahajjudSub) elTahajjudSub.textContent = `Active Now (Ends at ${format12Hour(timings.Fajr)})`;
+    if (elTahajjudTimer) elTahajjudTimer.textContent = formatCountdownDigital(secsToFajr);
+  } else {
+    let secsToTahajjud = Math.max(0, Math.floor((tahajjudStart.getTime() - now.getTime()) / 1000));
+    const tahajjudHHMM = `${String(tahajjudStart.getHours()).padStart(2, '0')}:${String(tahajjudStart.getMinutes()).padStart(2, '0')}`;
+    if (elTahajjudSub) elTahajjudSub.textContent = `Tonight's window starts at ${format12Hour(tahajjudHHMM)}`;
+    if (elTahajjudTimer) elTahajjudTimer.textContent = formatCountdownDigital(secsToTahajjud);
+  }
+
+  // Re-render cards every tick to update Active / Missed status in real time
+  renderPrayerCards(timings, completedPrayers);
 }
 
 function openUrl(url) {
@@ -192,42 +363,33 @@ function openUrl(url) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  updateQuoteDisplay();
+  const { loc, provider, juristic, completed } = await getStoredState();
 
-  const data = await fetchPrayerTimes();
+  const lat = loc?.lat || 22.3569;
+  const lng = loc?.lng || 91.7832;
+  const nameEn = loc?.nameEn || 'Chattogram';
+  const country = loc?.country || 'Bangladesh';
+  const timezone = loc?.timezone || 'Asia/Dhaka';
+
+  const locBadge = document.getElementById('locationLabel');
+  if (locBadge) locBadge.textContent = nameEn;
+
+  const locFooter = document.getElementById('locationFooterText');
+  if (locFooter) locFooter.textContent = `${nameEn}, ${country} (${timezone})`;
+
+  const data = await fetchPrayerTimes(lat, lng, juristic);
   const providerLabel = document.getElementById('providerLabel');
   if (providerLabel) providerLabel.textContent = data.provider + ' · Online';
 
   const t = data.timings;
-  const list = document.getElementById('prayersList');
 
-  if (list && t) {
-    list.innerHTML = '';
-
-    const cards = [
-      { name: 'Fajr', start: t.Fajr, limit: t.Sunrise },
-      { name: 'Sunrise', start: t.Sunrise, limit: t.Dhuhr },
-      { name: 'Dhuhr', start: t.Dhuhr, limit: t.Asr },
-      { name: 'Asr', start: t.Asr, limit: t.Maghrib },
-      { name: 'Maghrib', start: t.Maghrib, limit: t.Isha },
-      { name: 'Isha', start: t.Isha, limit: t.Fajr }
-    ];
-
-    cards.forEach(c => {
-      const card = document.createElement('div');
-      card.className = 'prayer-card';
-      card.innerHTML = `
-        <span class="card-name">${c.name}</span>
-        <div class="card-times">
-          <span class="time">${format12Hour(c.start)}</span>
-          <span class="limit">Limit: ${format12Hour(c.limit)}</span>
-        </div>
-      `;
-      list.appendChild(card);
-    });
+  if (t) {
+    renderPrayerCards(t, completed);
+    updateLiveCounters(t, completed);
+    setInterval(() => updateLiveCounters(t, completed), 1000);
   }
 
-  // Bind dual action buttons matching user image:
+  // Bind buttons
   const dashboardBtn = document.getElementById('openDashboardBtn');
   if (dashboardBtn) {
     dashboardBtn.addEventListener('click', () => {
@@ -242,14 +404,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Refresh button
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.textContent = '...';
-      const updated = await fetchPrayerTimes();
+      const updated = await fetchPrayerTimes(lat, lng, juristic);
       refreshBtn.textContent = '↻ Refresh';
       if (providerLabel) providerLabel.textContent = updated.provider + ' · Online';
+      if (updated.timings) updateLiveCounters(updated.timings, completed);
     });
   }
 });

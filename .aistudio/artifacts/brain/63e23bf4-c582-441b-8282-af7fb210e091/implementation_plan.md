@@ -1,77 +1,62 @@
-# Extension Popup & Mini Widget Controls Sync
+# Extension Popup Storage Sync, Dashboard Icon & Missed Prayer Red Box
 
-Unify the bottom action controls across both the browser extension popup modal (`extension/popup.html`) and the web application's `MiniWidget.tsx` component so both render identical, functional action controls.
+Synchronize the Extension Popup with the main Dashboard's stored location, provider, and completed prayers state. Update the Popup brand header icon to match the Dashboard's emerald crescent moon icon, and render expired unprayed prayer cards with a distinct red border, rose-tinted background, and "Missed (Qada)" status badge.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
 > The user confirmed the following design choices via interactive clarification:
-> - **Unified Layout**: Both the Chrome Extension Popup modal and the web application's `MiniWidget.tsx` component will feature identical bottom control bars.
-> - **Action Items**:
->   1. `[ Open Dashboard ↗ ]` green button (opens `dashboard.html` or main app view).
->   2. `[ Settings ⚙ ]` dark button (navigates to settings view).
->   3. `✦ Chattogram, Bangladesh (Asia/Dhaka)` dynamic location line.
->   4. `[ ↻ Refresh ]` full-width dark action button at the bottom (removes obsolete `Focus Mode (5m)` button).
+> - **Red Box for Expired Prayers**: Prayer windows that have ended without being marked prayed will render with a red border (`border-rose-500/50`), rose-tinted background (`bg-rose-950/20`), and a `Missed (Qada)` badge.
+> - **Shared Storage Sync**: The Extension Popup will read `location_info`, `active_provider`, `juristic_method`, and `completed_prayers` directly from `chrome.storage.local` (synced with the Dashboard), ensuring the popup always reflects the user's selected location and active API provider.
+> - **Matching Icon**: Replace the popup header logo with the exact emerald crescent moon & gold star icon from the Dashboard (`MiniWidget.tsx` / `Navbar.tsx`).
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Standardizes the popup UI layout when clicking the extension icon in browser toolbar or opening the in-app Mini Widget modal.
+- **What It Does**: Unifies the browser Extension Popup with the main Dashboard application in storage state, visual brand identity, and status tracking.
 - **Key Actions**:
-  - Direct navigation to full dashboard (`dashboard.html` / `section=overview`).
-  - Direct navigation to settings (`dashboard.html?section=settings`).
-  - Live formatted location line matching active location state (`✦ Chattogram, Bangladesh (Asia/Dhaka)`).
-  - One-tap data refresh button (`↻ Refresh`) to sync prayer timings across storage.
+  - Load location (`location_info`), provider (`active_provider`), juristic method (`juristic_method`), and completion records (`completed_prayers`) from `chrome.storage.local`.
+  - Display dynamic location in popup header (e.g., `Chattogram`, `Dhaka`, `Sylhet`, etc.) and location footer line (`✦ Chattogram, Bangladesh (Asia/Dhaka)`).
+  - Update popup header icon to match the Dashboard crescent moon SVG.
+  - Dynamically check each prayer card's end limit time against current time; if expired and unprayed, render in red box with `Missed (Qada)` badge.
 
 ## 2. User Experience & Visual Design
 
-- **Bottom Action Strip Layout**:
-  - **Primary Action Grid**: 2 equal columns:
-    - Left: Emerald gradient CTA button `[ Open Dashboard ↗ ]` (`bg-emerald-600 hover:bg-emerald-500 text-white font-semibold`).
-    - Right: Dark slate button `[ ⚙ Settings ]` (`bg-slate-900 border border-slate-800 text-slate-200 hover:text-white`).
-  - **Location Subtitle Line**: Centered small text with emerald sparkle: `✦ Chattogram, Bangladesh (Asia/Dhaka)` (`text-[11px] text-slate-400 font-medium`).
-  - **Full-Width Refresh Button**: Below location line, a full-width dark button `[ ↻ Refresh ]` (`bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 w-full py-2 rounded-xl text-xs font-semibold`).
+- **Prayer Grid Card States in Popup**:
+  - **Active Waqt**: Emerald highlight ring (`border-emerald-500 bg-emerald-950/30`), green time display, and `Active` badge.
+  - **Finished / Prayed**: Emerald border (`border-emerald-500/40`), green check icon, and `Done` badge.
+  - **Missed (Expired Unprayed)**: Red box styling (`border-rose-500/50 bg-rose-950/20`), rose text, and `Missed (Qada)` badge.
+  - **Upcoming**: Dark slate card (`border-slate-800 bg-slate-900/60`).
 
 ```
-┌────────────────────────────────────────────────────────┐
-│ [ Open Dashboard ↗ ]             [ ⚙ Settings ]        │
-├────────────────────────────────────────────────────────┤
-│           ✦ Chattogram, Bangladesh (Asia/Dhaka)        │
-├────────────────────────────────────────────────────────┤
-│                     [ ↻ Refresh ]                      │
-└────────────────────────────────────────────────────────┘
+┌───────────────────────────┐   ┌───────────────────────────┐
+│ Fajr          04:45 AM    │   │ Dhuhr        11:37 AM     │
+│ Limit: 06:01 AM   [Done]  │   │ Limit: 03:36 PM  [Active] │
+│ (Green Border & Badge)    │   │ (Emerald Highlight Ring)  │
+└───────────────────────────┘   └───────────────────────────┘
+┌───────────────────────────┐   ┌───────────────────────────┐
+│ Asr           03:36 PM    │   │ Maghrib      05:12 PM     │
+│ Limit: 05:12 PM  [Missed] │   │ Limit: 06:28 PM [Upcoming]│
+│ (Red Box & Rose Badge)    │   │ (Standard Dark Slate Card)│
+└───────────────────────────┘   └───────────────────────────┘
 ```
 
 ## 3. Technical Architecture & Component Changes
 
-```
-┌───────────────────────────┐         ┌───────────────────────────┐
-│   extension/popup.html    │         │  src/components/          │
-│   extension/popup.js      │         │  MiniWidget.tsx           │
-└─────────────┬─────────────┘         └─────────────┬─────────────┘
-              │                                     │
-              └───────────────┬─────────────────────┘
-                              ▼
-                Identical Bottom Controls:
-                - Open Dashboard ↗
-                - Settings ⚙
-                - ✦ Location line
-                - ↻ Refresh (full-width)
-```
+1. **`extension/popup.html`**:
+   - Ensure header icon SVG matches `MiniWidget.tsx` exact paths (emerald crescent `#34D399` with gold star `#F59E0B`).
 
-1. **`extension/popup.html` & `extension/popup.js`**:
-   - Update HTML structure: Replace footer buttons `Focus Mode (5m)` and `Refresh` with a full-width `↻ Refresh` button below the location line.
-   - Wire event handlers:
-     - `openDashboardBtn` -> opens `chrome.tabs.create({ url: 'dashboard.html' })`.
-     - `openSettingsBtn` -> opens `chrome.tabs.create({ url: 'dashboard.html?section=settings' })`.
-     - `refreshBtn` -> triggers prayer timings sync from active provider and updates popup state.
-   - Clean up top header quote/coordinate banners if requested in prior turn.
+2. **`extension/popup.js`**:
+   - Integrate `chrome.storage.local.get(['location_info', 'active_provider', 'juristic_method', 'completed_prayers'])`.
+   - Pass stored coordinates (`lat`, `lng`) and provider settings to `fetchPrayerTimes()`.
+   - Pass completion state to prayer cards renderer (`renderPrayerCards`).
+   - In `updateLiveCounters()`, re-evaluate card status every second:
+     - Check if `now > limitDate` and `!isCompleted`.
+     - Apply `.prayer-card.missed` class for red box styling and update status badge text to `Missed (Qada)`.
 
-2. **`src/components/MiniWidget.tsx`**:
-   - Add bottom controls matching `popup.html`:
-     - `onOpenFullDashboard` button.
-     - `onOpenSettings` button.
-     - Dynamic location text: `✦ {location.nameEn}, {location.country} ({location.timezone})`.
-     - Full-width `Refresh` button calling `onRefresh` handler.
+3. **`extension/popup.css`**:
+   - Add `.prayer-card.missed` styles:
+     `border-color: rgba(244, 63, 94, 0.5); background: rgba(244, 63, 94, 0.15);`
+   - Add `.badge-missed`: `color: #fda4af; background: rgba(244, 63, 94, 0.2); border: 1px solid rgba(244, 63, 94, 0.4);`.
 
-3. **Extension Re-Packaging**:
-   - Run `npm run build && node scripts/pack-extension.js` to update `Prayer-Focus-v2.2.23-Fixed.zip`.
+4. **Extension Packaging**:
+   - Run `npm run build && node scripts/pack-extension.js` to create updated `Prayer-Focus-v2.2.23-Fixed.zip`.

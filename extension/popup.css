@@ -10,69 +10,67 @@ body {
 .font-arabic { font-family: 'Amiri', serif; }
 .font-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
 
-.quote-banner {
-  background: linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, rgba(8, 16, 20, 0.95) 100%);
-  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+.popup-header {
   padding: 10px 14px;
-}
-.quote-header {
+  background: #04090c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  justify-content: space-between;
 }
-.quote-header-title {
+.popup-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #152820 0%, #08100c 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.logo-svg {
+  width: 18px;
+  height: 18px;
+}
+.brand-title-wrap {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.brand-logo-icon {
-  width: 15px;
-  height: 15px;
-  object-fit: contain;
-}
-.badge {
-  font-size: 10px;
+.brand-title {
+  font-size: 13px;
   font-weight: 700;
+  color: #f1f5f9;
+}
+.live-badge {
+  font-size: 9px;
+  font-weight: 600;
   color: #34d399;
   background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  padding: 2px 7px;
-  border-radius: 9999px;
-  letter-spacing: 0.2px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
 }
-.rotates-label { font-size: 10px; color: #94a3b8; font-variant-numeric: tabular-nums; }
-.quote-arabic {
-  font-size: 13px;
-  color: #a7f3d0;
-  text-align: right;
-  direction: rtl;
-  margin-bottom: 4px;
-  line-height: 1.4;
-}
-.quote-bengali {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: #f8fafc;
-  font-weight: 500;
-}
-.quote-ref {
+.provider-info {
   font-size: 10px;
-  color: #34d399;
-  margin-top: 4px;
+  color: #64748b;
+  margin-top: 1px;
+}
+.location-badge {
+  font-size: 11px;
   font-weight: 600;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 3px 8px;
+  border-radius: 8px;
 }
-
-.status-strip {
-  display: flex;
-  justify-content: space-between;
-  padding: 7px 14px;
-  font-size: 10.5px;
-  color: #94a3b8;
-  background: #050b0e;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-.provider-badge { color: #34d399; font-weight: 600; }
 
 .hero-waqt {
   padding: 12px 14px;
@@ -143,6 +141,21 @@ body {
   background: rgba(16, 185, 129, 0.15);
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
 }
+.prayer-card.missed {
+  border-color: rgba(244, 63, 94, 0.6);
+  background: rgba(244, 63, 94, 0.15);
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.15);
+}
+.prayer-card.missed .card-name {
+  color: #fda4af;
+}
+.prayer-card.missed .time {
+  color: #f43f5e;
+}
+.prayer-card.done {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+}
 .prayer-card .card-name {
   font-weight: 600;
   color: #e2e8f0;
@@ -163,6 +176,30 @@ body {
   font-size: 9px;
   color: #94a3b8;
   margin-top: 1px;
+}
+.card-badge {
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-top: 2px;
+  display: inline-block;
+  letter-spacing: 0.2px;
+}
+.card-badge.missed {
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.25);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+.card-badge.done {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.card-badge.active {
+  color: #fef08a;
+  background: rgba(234, 179, 8, 0.2);
+  border: 1px solid rgba(234, 179, 8, 0.35);
 }
 
 /* Dual Actions matching user screenshot */

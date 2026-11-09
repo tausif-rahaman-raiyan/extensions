@@ -8,25 +8,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Hind+Siliguri:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Top Bengali Wisdom Banner (Hourly rotation) -->
-  <header class="quote-banner">
-    <div class="quote-header">
-      <div class="quote-header-title">
-        <img src="icons/icon16.png" class="brand-logo-icon" alt="Prayer Focus" />
-        <span class="badge">Islamic Wisdom</span>
+  <!-- Clean Compact Header Bar -->
+  <header class="popup-header">
+    <div class="popup-brand">
+      <div class="logo-icon-wrap">
+        <svg viewBox="0 0 128 128" class="logo-svg">
+          <path d="M78 24 C46 24 22 48 22 80 C22 104 38 114 54 114 C36 102 34 76 52 52 C64 36 78 30 78 24 Z" fill="#34D399"/>
+          <polygon transform="translate(80, 52) scale(0.9)" points="0,-18 5,-6 18,-5 8,4 12,16 0,9 -12,16 -8,4 -18,-5 -5,-6" fill="#F59E0B"/>
+        </svg>
       </div>
-      <span class="rotates-label" id="quoteTimer">Rotates hourly</span>
+      <div>
+        <div class="brand-title-wrap">
+          <span class="brand-title">Prayer Focus</span>
+          <span class="live-badge">Live Sync</span>
+        </div>
+        <div class="provider-info" id="providerLabel">AlAdhan · Online</div>
+      </div>
     </div>
-    <p class="quote-arabic font-arabic" id="quoteArabic"></p>
-    <blockquote class="quote-bengali font-bengali" id="quoteBengali"></blockquote>
-    <div class="quote-ref" id="quoteRef"></div>
+    <div class="location-badge" id="locationLabel">Chattogram</div>
   </header>
-
-  <!-- Status Bar -->
-  <div class="status-strip">
-    <div class="loc" id="locationLabel">Chattogram (22.35°N, 91.78°E)</div>
-    <div class="provider-badge" id="providerLabel">AlAdhan · Online</div>
-  </div>
 
   <!-- Hero Next Prayer Countdown -->
   <section class="hero-waqt">
